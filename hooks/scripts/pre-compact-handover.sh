@@ -28,6 +28,7 @@ HANDOVER_DIR="${PROJECT_DIR}/.claude/handovers"
 # Ensure handover directory exists
 mkdir -p "$HANDOVER_DIR"
 
+# SYNC: The 8 section headings below must match commands/handover.md lines 17-38.
 # Prompt template prefix — transcript is appended via stdin pipe to avoid ARG_MAX limits
 PROMPT_PREFIX='Read the following Claude Code session transcript and produce a HANDOVER note.
 Goal: The next Claude session (or a teammate) should be able to continue from where we left off.
@@ -49,7 +50,7 @@ CONTENT=$(
   {
     printf '%s\n' "$PROMPT_PREFIX"
     cat "$TRANSCRIPT_PATH"
-  } | claude -p 2>/dev/null
+  } | timeout 150 claude -p 2>/dev/null
 ) || CONTENT=""
 
 # Guard: empty output (claude failed or produced nothing)
