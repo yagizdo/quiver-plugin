@@ -6,7 +6,7 @@ Dependencies: `bash`, `claude` CLI.
 ## Architecture
 
 - **`.claude-plugin/`** — Plugin manifest (`plugin.json`). Defines name, version, hook and command registration.
-- **`commands/`** — Markdown slash commands (currently 5). Each file has a YAML `description` and is a self-contained prompt.
+- **`commands/`** — Markdown slash commands (currently 4). Each file has a YAML `description` and is a self-contained prompt.
 - **`hooks/`** — `hooks.json` registers event hooks; `scripts/` holds their implementations. Currently one hook: PreCompact (fires before context compaction).
 - **Storage** — Handover files are written to `<project>/.claude/handovers/`.
 
@@ -21,8 +21,9 @@ Dependencies: `bash`, `claude` CLI.
 ### Adding a Command
 
 1. Create `commands/<name>.md` with a YAML front-matter `description` field.
-2. Use `` !`…` `` blocks for any runtime data the prompt needs.
-3. Do not reference `CLAUDE_PLUGIN_ROOT` — it is unavailable in commands.
+2. Commands are **prompts**, not scripts. `` !`…` `` blocks gather raw data; the rest of the file is a prompt that tells Claude how to interpret the data, make decisions, and take actions with its own tools. Never write a bare code block without accompanying prompt guidance — marketplace users need commands that work out of the box.
+3. Do not use `$()` command substitution, variable assignment, `if/else`, or logic-bearing pipes in `` !`…` `` blocks — Claude Code blocks these in marketplace plugins.
+4. Do not reference `CLAUDE_PLUGIN_ROOT` — it is unavailable in commands.
 
 ### Adding or Modifying a Hook
 

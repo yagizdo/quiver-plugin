@@ -47,7 +47,6 @@ That's it. Your decisions, progress, and next steps carry over.
 | `/quiver:load-handover` | Loads the most recent handover into context |
 | `/quiver:delete-all-handovers` | Deletes all handover files |
 | `/quiver:delete-last-handover` | Deletes the most recent handover file |
-| `/quiver:status` | Shows plugin version, handover count, and hook status |
 
 ## Setup
 

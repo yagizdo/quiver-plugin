@@ -4,8 +4,27 @@ description: Delete the most recent handover file to remove the last session's c
 
 # Clear Last Handover
 
-!`latest=$(ls -1t .claude/handovers/*.md 2>/dev/null | head -1); if [ -n "$latest" ]; then rm "$latest" && echo "Deleted: $(basename $latest)"; remaining=$(ls -1 .claude/handovers/*.md 2>/dev/null | wc -l | tr -d ' '); echo "Remaining: $remaining"; else echo "No handover files found — nothing to delete."; fi`
+## Handover Files
+```
+!`ls -1t .claude/handovers/`
+```
 
 ---
 
-The most recent handover file has been deleted. If there are older handovers, the next `/quiver:load-handover` will load from those. Use `/quiver:delete-all-handovers` to wipe everything.
+## Instructions
+
+Using the file listing above:
+
+1. Filter to only `.md` files. If there are **none**, report:
+   > No handover files found — nothing to delete.
+
+2. Otherwise, the **first `.md` file** is the most recent. Delete it using the Bash tool:
+   ```
+   rm .claude/handovers/<filename>
+   ```
+
+3. Count how many `.md` files remain and report:
+   > Deleted: `<filename>`
+   > Remaining: `<count>` handover file(s)
+
+4. Mention: use `/quiver:delete-all-handovers` to wipe everything.

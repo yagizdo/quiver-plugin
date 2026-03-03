@@ -4,13 +4,25 @@ description: Load the most recent handover note from the previous session into c
 
 # Previous Session Handover
 
-!`latest=$(ls -1t .claude/handovers/*.md 2>/dev/null | head -1); if [ -n "$latest" ]; then cat "$latest"; else echo "No handover files found for this project."; echo "This is a fresh session — no previous context to load."; echo "Run /quiver:handover at the end of this session to start tracking."; fi`
+## Handover Files
+```
+!`ls -1t .claude/handovers/`
+```
 
 ---
 
-The content above is the most recent handover from `.claude/handovers/`.
+## Instructions
 
-Review it and:
-1. Confirm you understand the current state of the project
-2. State what the top priority Next Step is
-3. Proceed directly with the highest-priority Next Step unless the user has already provided instructions
+Using the file listing above:
+
+1. Filter to only `.md` files. If there are **none**, report:
+   > No handover files found for this project.
+   > This is a fresh session — no previous context to load.
+   > Run /quiver:handover at the end of this session to start tracking.
+
+2. Otherwise, the **first `.md` file** in the listing is the most recent (sorted newest-first). Read it using the Read tool at path `.claude/handovers/<filename>`.
+
+3. Present its contents, then:
+   - Confirm you understand the current state of the project
+   - State what the top priority Next Step is
+   - Proceed directly with the highest-priority Next Step unless the user has already provided instructions
