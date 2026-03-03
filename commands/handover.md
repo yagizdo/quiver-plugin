@@ -14,6 +14,43 @@ description: Summarize the current work state and prepare a handover note for th
 !`git diff --stat 2>&1`
 ```
 
+---
+
+# Session Freshness Check
+
+Before generating a handover, evaluate whether this session contains meaningful work worth preserving.
+
+A session is **fresh/empty** — and should NOT produce a handover — if **ALL** of the following are true:
+
+1. **Trivial conversation** — The conversation consists only of greetings, simple questions, the `/quiver:handover` command itself, or fewer than ~3 substantive user-assistant exchanges.
+2. **No tool actions** — You did not create, edit, delete, or read any project files during this session (the git commands above don't count).
+3. **No session-originated changes** — The git status above shows no modifications introduced during this session. Pre-existing dirty state from a prior session does not count.
+4. **No technical substance** — No debugging, investigation, architectural decisions, bug analysis, or technical discoveries occurred in the conversation.
+
+Using these criteria, determine which branch applies:
+
+### Branch A — Fresh/Empty Session
+
+If **all four** conditions above are true:
+
+> **Handover skipped** — This session has no meaningful work to summarize.
+> A handover file was **not** created.
+>
+> **When to run this command:**
+> - After making code changes, investigating bugs, or making decisions
+> - At the end of a productive work session
+> - Before closing a session you would like to resume later
+>
+> **Tip:** `/quiver:load-handover` to check if a previous handover exists.
+
+**Stop here.** Do not create the handover directory, do not write any files, and do not proceed to the Handover Instructions below.
+
+### Branch B — Meaningful Context Exists
+
+If **any one** of the four conditions is false (i.e., the session has substance), proceed to the Handover Instructions section below and generate the full handover.
+
+---
+
 # Handover Instructions
 
 **Your role:** You are a session handover specialist. Your goal is to produce a zero-re-discovery handover — the next session should never re-investigate what this session already learned. Be specific: include file paths, function names, line numbers, and exact error messages.
@@ -30,7 +67,7 @@ If the git commands above produced errors (e.g. "not a git repository", "command
 └─────────────────┘     └──────────────────┘     └──────────────────┘
 ```
 
-<!-- SYNC: The 8 section headings below must match hooks/scripts/pre-compact-handover.sh:25 PROMPT_PREFIX. -->
+<!-- SYNC: The 8 section headings below (lines 73–106) must match hooks/scripts/pre-compact-handover.sh:25 PROMPT_PREFIX. -->
 Using the context above and our conversation, prepare a structured handover note with these exact sections:
 
 ## Summary
