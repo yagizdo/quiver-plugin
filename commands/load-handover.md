@@ -13,16 +13,53 @@ description: Load the most recent handover note from the previous session into c
 
 ## Instructions
 
-Using the file listing above:
+Using the file listing above, determine which branch applies:
 
-1. Filter to only `.md` files. If there are **none**, report:
-   > No handover files found for this project.
-   > This is a fresh session — no previous context to load.
-   > Run /quiver:handover at the end of this session to start tracking.
+### Branch A — No Files
+If there are **no `.md` files** in the listing:
+> No handover files found for this project.
+> This is a fresh session — no previous context to load.
+> Run `/quiver:handover` at the end of this session to start tracking.
 
-2. Otherwise, the **first `.md` file** in the listing is the most recent (sorted newest-first). Read it using the Read tool at path `.claude/handovers/<filename>`.
+**Stop here.** Do not proceed to Branch B or C.
 
-3. Present its contents, then:
-   - Confirm you understand the current state of the project
-   - State what the top priority Next Step is
-   - Proceed directly with the highest-priority Next Step unless the user has already provided instructions
+### Branch B — One File
+If there is **exactly one `.md` file**:
+1. Read it using the Read tool at path `.claude/handovers/{filename}`.
+2. Present it using the template below.
+
+### Branch C — Multiple Files
+If there are **two or more `.md` files**:
+1. The **first `.md` file** in the listing is the most recent (sorted newest-first). Read it using the Read tool at path `.claude/handovers/{filename}`.
+2. Present it using the template below.
+3. Mention: "{count} older handover(s) also available."
+
+---
+
+## Presentation Template
+
+After reading the handover file, present this summary:
+
+> **Session loaded:** `{filename}`
+> **Date:** {date extracted from timestamp in filename}
+> **Top Priority:** {first item from Next Steps section}
+
+Then:
+1. Confirm you understand the current state of the project.
+2. List all Next Steps with their priority order and a short explanation of each.
+3. Ask the user which one they'd like to work on.
+
+---
+
+## Anti-Patterns
+
+- **Don't** dump the raw handover contents without a summary header — always lead with the presentation template.
+- **Don't** auto-start the first Next Step without asking — always present the list and let the user choose.
+- **Don't** read older handover files unless the user explicitly requests it.
+
+---
+
+## Verification
+
+- Confirm the file read succeeded (non-empty content returned).
+- If the file content looks malformed (no section headings, empty body), warn: "This handover may be incomplete — proceeding with available context."

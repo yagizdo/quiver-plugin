@@ -14,7 +14,7 @@ Dependencies: `bash`, `claude` CLI.
 
 - **Commands** — Markdown files executed by Claude Code. Shell blocks (`` !`…` ``) run inline and inject output into the prompt. Commands cannot call hook scripts directly; they duplicate save/prune logic as Claude instructions.
 - **Hooks** — Bash scripts invoked by Claude Code on lifecycle events. The PreCompact hook reads `transcript_path` from stdin JSON (via `sed`), pipes the transcript to `claude -p` for summarization, and writes the result to the handovers directory.
-- **SYNC contract** — The 8 handover section headings are defined in two places that must stay identical: `commands/handover.md:15` and `hooks/scripts/pre-compact-handover.sh:25`. Both files contain a `SYNC:` comment pointing to the other. If you change headings, update both and verify line numbers in the comments.
+- **SYNC contract** — The 8 handover section headings are defined in two places that must stay identical: `commands/handover.md:33` and `hooks/scripts/pre-compact-handover.sh:25`. Both files contain a `SYNC:` comment pointing to the other. If you change headings, update both and verify line numbers in the comments.
 
 ## Development Standards
 

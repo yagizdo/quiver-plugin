@@ -13,18 +13,38 @@ description: Delete the most recent handover file to remove the last session's c
 
 ## Instructions
 
-Using the file listing above:
+Using the file listing above, determine which branch applies:
 
-1. Filter to only `.md` files. If there are **none**, report:
-   > No handover files found — nothing to delete.
+### Branch A — No Files
+If there are **no `.md` files** in the listing:
+> No handover files found — nothing to delete.
+> **Tip:** `/quiver:handover` to create one, `/quiver:load-handover` to check again.
 
-2. Otherwise, the **first `.md` file** is the most recent. Delete it using the Bash tool:
+**Stop here.**
+
+### Branch B — Files Exist
+If there are **one or more `.md` files**:
+1. The **first `.md` file** is the most recent (sorted newest-first). This is the deletion target.
+2. State the pre-deletion confirmation:
+   > **Target:** `{filename}`
+   > **Remaining after deletion:** {count - 1} handover file(s)
+3. Delete it using the Bash tool:
    ```
-   rm .claude/handovers/<filename>
+   rm .claude/handovers/{filename}
    ```
 
-3. Count how many `.md` files remain and report:
-   > Deleted: `<filename>`
-   > Remaining: `<count>` handover file(s)
+---
 
-4. Mention: use `/quiver:delete-all-handovers` to wipe everything.
+## Output Template
+
+After deletion, output:
+
+> **Deleted:** `{filename}`
+> **Remaining:** {count} handover file(s)
+> **Tip:** `/quiver:delete-all-handovers` to wipe all, `/quiver:load-handover` to view next.
+
+---
+
+## Verification
+
+Re-list `.claude/handovers/` after deletion to confirm the file is gone and the remaining count is correct.
