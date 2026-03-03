@@ -24,6 +24,7 @@ Dependencies: `bash`, `claude` CLI.
 2. Commands are **prompts**, not scripts. `` !`…` `` blocks gather raw data; the rest of the file is a prompt that tells Claude how to interpret the data, make decisions, and take actions with its own tools. Never write a bare code block without accompanying prompt guidance — marketplace users need commands that work out of the box.
 3. Do not use `$()` command substitution, variable assignment, `if/else`, or logic-bearing pipes in `` !`…` `` blocks — Claude Code blocks these in marketplace plugins.
 4. Do not reference `CLAUDE_PLUGIN_ROOT` — it is unavailable in commands.
+5. Follow the structural patterns defined in `.claude/templates/command-template-system.md` — role framing, decision trees, output templates, anti-patterns, quality gates, verification steps, and cross-command references.
 
 ### Adding or Modifying a Hook
 

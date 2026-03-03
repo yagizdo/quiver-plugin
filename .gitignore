@@ -48,6 +48,7 @@ marketing/
 .claude/issues/
 .claude/reviews/
 .claude/plans/
+.claude/templates/
 
 # Git worktrees
 .worktrees/
