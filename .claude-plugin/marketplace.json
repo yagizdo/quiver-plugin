@@ -13,7 +13,7 @@
       "source": "./",
       "description": "Session handover and work state management for Claude Code",
       "author": {
-        "name": "yagizdo"
+        "name": "Yilmaz Yagiz Dokumaci"
       },
       "homepage": "https://github.com/yagizdo/quiver-plugin",
       "repository": "https://github.com/yagizdo/quiver-plugin",
