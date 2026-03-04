@@ -18,20 +18,40 @@ description: Summarize the current work state and prepare a handover note for th
 
 # Session Freshness Check
 
-Before generating a handover, evaluate whether this session contains meaningful work worth preserving.
+Before generating a handover, determine whether this session produced meaningful work worth preserving. **You must prove substance exists — do not assume it.**
 
-A session is **fresh/empty** — and should NOT produce a handover — if **ALL** of the following are true:
+### Step 1 — Enumerate Meaningful Work
 
-1. **Trivial conversation** — The conversation consists only of greetings, simple questions, the `/quiver:handover` command itself, or fewer than ~3 substantive user-assistant exchanges.
-2. **No tool actions** — You did not create, edit, delete, or read any project files during this session (the git commands above don't count).
-3. **No session-originated changes** — The git status above shows no modifications introduced during this session. Pre-existing dirty state from a prior session does not count.
-4. **No technical substance** — No debugging, investigation, architectural decisions, bug analysis, or technical discoveries occurred in the conversation.
+Review the full conversation and list every meaningful action taken during **this session**. Write this list as a **Decision Log** before choosing a branch.
 
-Using these criteria, determine which branch applies:
+**Counts as meaningful work:**
+- Code created, edited, or deleted (file writes, not just reads)
+- Bug investigated with findings or conclusions
+- Architectural or design decisions made
+- Multi-step debugging with a diagnosis
+- Configuration changes applied
+- Tests written, run, or fixed
+- Plans created or refined with concrete next steps
 
-### Branch A — Fresh/Empty Session
+**Does NOT count as meaningful work:**
+- The `/quiver:handover` command itself and its inline git commands
+- Reading files solely to answer a quick question with no follow-up action
+- Greetings, small talk, or simple Q&A with no project impact
+- Pre-existing git dirty state from a prior session (changes that were already there when this session started)
+- Exploring or browsing code without reaching conclusions or decisions
 
-If **all four** conditions above are true:
+### Step 2 — Decision Log
+
+Output the following before choosing a branch:
+
+> **Decision Log — Session Freshness**
+> Meaningful actions found:
+> - {list each meaningful action, or "None"}
+> Verdict: {Branch A or Branch B}
+
+### Branch A — No Meaningful Work (skip handover)
+
+If the meaningful actions list is empty:
 
 > **Handover skipped** — This session has no meaningful work to summarize.
 > A handover file was **not** created.
@@ -45,9 +65,9 @@ If **all four** conditions above are true:
 
 **Stop here.** Do not create the handover directory, do not write any files, and do not proceed to the Handover Instructions below.
 
-### Branch B — Meaningful Context Exists
+### Branch B — Meaningful Work Exists (create handover)
 
-If **any one** of the four conditions is false (i.e., the session has substance), proceed to the Handover Instructions section below and generate the full handover.
+If the meaningful actions list has at least one item, proceed to the Handover Instructions section below and generate the full handover.
 
 ---
 
@@ -67,7 +87,7 @@ If the git commands above produced errors (e.g. "not a git repository", "command
 └─────────────────┘     └──────────────────┘     └──────────────────┘
 ```
 
-<!-- SYNC: The 8 section headings below (lines 73–106) must match hooks/scripts/pre-compact-handover.sh:25 PROMPT_PREFIX. -->
+<!-- SYNC: The 8 section headings below (lines 93–126) must match hooks/scripts/pre-compact-handover.sh:25 PROMPT_PREFIX. -->
 Using the context above and our conversation, prepare a structured handover note with these exact sections:
 
 ## Summary
