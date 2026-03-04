@@ -2,17 +2,13 @@
 description: Summarize the current work state and prepare a handover note for the next session.
 ---
 
-# Automatically Gathered Context
+# Step 0 — Gather Git Context
 
-## Git Status
-```
-!`git status --short 2>&1`
-```
+Run these two commands using your Bash tool:
+1. `git status --short`
+2. `git diff --stat`
 
-## Git Diff Summary
-```
-!`git diff --stat 2>&1`
-```
+If either command fails (e.g. "not a git repository"), note **"Git not available"** and continue — git context is optional. Do not stop or report an error to the user.
 
 ---
 
@@ -34,7 +30,7 @@ Review the full conversation and list every meaningful action taken during **thi
 - Plans created or refined with concrete next steps
 
 **Does NOT count as meaningful work:**
-- The `/quiver:handover` command itself and its inline git commands
+- The `/quiver:handover` command itself and its git context-gathering commands
 - Reading files solely to answer a quick question with no follow-up action
 - Greetings, small talk, or simple Q&A with no project impact
 - Pre-existing git dirty state from a prior session (changes that were already there when this session started)
@@ -75,7 +71,7 @@ If the meaningful actions list has at least one item, proceed to the Handover In
 
 **Your role:** You are a session handover specialist. Your goal is to produce a zero-re-discovery handover — the next session should never re-investigate what this session already learned. Be specific: include file paths, function names, line numbers, and exact error messages.
 
-If the git commands above produced errors (e.g. "not a git repository", "command not found"), that's fine — skip the git-related context and note "Git not available" in the Summary. Build the handover from the conversation context alone.
+If git context was not available (see Step 0), build the handover from the conversation context alone and note "Git not available" in the Summary.
 
 **Workflow:**
 ```
@@ -87,7 +83,7 @@ If the git commands above produced errors (e.g. "not a git repository", "command
 └─────────────────┘     └──────────────────┘     └──────────────────┘
 ```
 
-<!-- SYNC: The 8 section headings below (lines 93–126) must match hooks/scripts/pre-compact-handover.sh:25 PROMPT_PREFIX. -->
+<!-- SYNC: The 8 section headings below (lines 89–122) must match hooks/scripts/pre-compact-handover.sh:25 PROMPT_PREFIX. -->
 Using the context above and our conversation, prepare a structured handover note with these exact sections:
 
 ## Summary
