@@ -1,5 +1,6 @@
 ---
 description: Generate a Conventional Commits message, commit, and optionally push to remote.
+argument-hint: [--push] (auto commit & push without prompting)
 ---
 
 # Gather Git Context
@@ -69,6 +70,12 @@ Analyze `git diff --cached` and the recent log. Generate a Conventional Commits 
 **Important:** Do NOT output the commit message as separate text. Embed it directly inside the `AskUserQuestion` tool call so the user always sees the message alongside the options.
 
 Include a body or footers only for breaking changes or multi-type changes where the subject alone is genuinely ambiguous. Default to subject-only. Don't add `Co-authored-by` or attribution footers unless explicitly requested.
+
+## Flag: `--push`
+
+If `$ARGUMENTS` contains "push" (e.g., `/quiver:commit --push`), skip the `AskUserQuestion` step entirely. Instead, show the generated commit message, then immediately execute **Commit & Push** (commit + push to remote) without prompting.
+
+## Default (no flag)
 
 Use the `AskUserQuestion` tool with the commit message embedded in the question field:
 
