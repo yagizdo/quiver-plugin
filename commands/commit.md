@@ -54,18 +54,11 @@ Analyze `git diff --cached` and the recent log. Generate a Conventional Commits 
 
 **Scope** — From file paths: single directory → its name, single file → domain name, cross-cutting → omit.
 
-**Breaking changes** — Check the staged diff for:
-- Removed or renamed public API functions/methods
-- Changed function signatures (added required params, changed return types)
-- Removed or renamed CLI flags, commands, or environment variables
-- Changed data formats, schemas, or wire protocols
-- Removed files that other code may depend on
-
-If found: add `!` after type/scope and a `BREAKING CHANGE:` footer.
+**Breaking changes** — If the change removes/renames public APIs, changes signatures, alters data formats, or removes CLI flags/commands, add `!` after type/scope and a `BREAKING CHANGE:` footer.
 
 **Subject line** — Imperative mood, lowercase after colon, no period, ≤72 chars total, describe *what* not *how*.
 
-**Body** — Almost never. Only for breaking changes or when the subject alone would be misleading. Wrap at 72 chars.
+**Body** — Almost never. Only for breaking changes or when the subject alone would be misleading. Wrap at 72 chars. Never include file lists — `git log --stat` shows this.
 
 **Footers** — `BREAKING CHANGE:` if applicable. `Refs: #issue` if relevant.
 
@@ -79,7 +72,7 @@ If found: add `!` after type/scope and a `BREAKING CHANGE:` footer.
 {type}({scope}): {subject}
 ```
 
-Include a body or footers only for breaking changes or multi-type changes where the subject alone is genuinely ambiguous. Default to subject-only.
+Include a body or footers only for breaking changes or multi-type changes where the subject alone is genuinely ambiguous. Default to subject-only. Don't add `Co-authored-by` or attribution footers unless explicitly requested.
 
 Then use the `AskUserQuestion` tool to present selectable options:
 
@@ -130,33 +123,4 @@ Then use the `AskUserQuestion` tool to present selectable options:
 
 # Error Handling
 
-If `git commit` fails (non-zero exit code):
-
-1. Show the error output verbatim.
-2. **Pre-commit hook failure** — suggest the user fix the issue and re-run `/quiver:commit`.
-3. **Never** retry automatically or use `--no-verify`.
-
----
-
-# Quality Gates
-
-Before presenting the commit message, verify:
-
-**BLOCKING** (fix before presenting):
-- Subject line is in imperative mood
-- Subject line (full `type(scope): description`) is ≤ 72 characters
-- Type is one of the 11 allowed values
-- Breaking changes have a `BREAKING CHANGE:` footer
-
-**WARNING** (review but don't block):
-- Single-directory change with no scope — consider adding one
-
----
-
-# Rules
-
-- Don't stage additional files — only commit what's already staged.
-- Don't force-push — always use regular `git push`.
-- Don't add `Co-authored-by` or attribution footers unless explicitly requested.
-- Don't include file lists in the body — `git log --stat` shows this.
-- Don't use past tense — Conventional Commits uses imperative mood.
+If `git commit` fails, show the error verbatim and suggest the user fix the issue and re-run `/quiver:commit`. Never retry automatically or use `--no-verify`.
