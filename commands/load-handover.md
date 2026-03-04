@@ -6,7 +6,7 @@ description: Load the most recent handover note from the previous session into c
 
 ## Handover Files
 ```
-!`ls -1t .claude/handovers/`
+!`ls -1t .claude/handovers/ 2>/dev/null; true`
 ```
 
 ---
