@@ -2,6 +2,27 @@
 
 Session continuity, agent orchestration, and development workflows for Claude Code. Never lose context between sessions — carry your decisions, progress, and next steps forward automatically.
 
+## Quick Start
+
+```bash
+/plugin marketplace add yagizdo/quiver
+/plugin install quiver@yagizdo/quiver
+```
+
+Then try your first command:
+
+```
+/handover
+```
+
+## Installation
+
+### Plugin Install (recommended)
+
+```bash
+/plugin install quiver@yagizdo/quiver
+```
+
 ## Components
 
 | Component | Count |
@@ -10,22 +31,6 @@ Session continuity, agent orchestration, and development workflows for Claude Co
 | Hooks | 1 |
 | Skills | 3 |
 | Agents | 1 |
-
-## Quick Start
-
-Save a handover before ending your session:
-
-```
-/handover
-```
-
-Restore context at the start of a new session:
-
-```
-/load-handover
-```
-
-That's it. Your decisions, progress, and next steps carry over.
 
 ## Commands
 
@@ -103,18 +108,6 @@ That's it. Your decisions, progress, and next steps carry over.
 - **Retention policy** — keeps the 3 most recent handovers, prunes older ones automatically
 - **Agent orchestration** — discover your local and plugin agents, assemble teams, and run subtasks in parallel
 - **Agent scaffolding** — create new agents interactively with smart defaults and best practices
-
-## Installation
-
-```
-/install yagizdo/quiver
-```
-
-Add the handover directory to your project's `.gitignore`:
-
-```
-.claude/handovers/
-```
 
 ## Uninstall
 
