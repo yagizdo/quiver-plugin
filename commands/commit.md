@@ -1,4 +1,5 @@
 ---
+name: commit
 description: Generate a Conventional Commits message, commit, and optionally push to remote.
 argument-hint: [--push] (auto commit & push without prompting)
 ---

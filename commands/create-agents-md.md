@@ -1,4 +1,5 @@
 ---
+name: create-agents-md
 description: Generate or rewrite an AGENTS.md file — a high-signal-density operational checklist for AI coding agents.
 argument-hint: Generates project-specific AGENTS.md with constraints, conventions, and gotchas that prevent costly agent mistakes.
 ---

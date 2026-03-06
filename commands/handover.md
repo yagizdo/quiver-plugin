@@ -1,4 +1,5 @@
 ---
+name: handover
 description: Summarize the current work state and prepare a handover note for the next session.
 ---
 

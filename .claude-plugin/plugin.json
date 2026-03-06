@@ -7,10 +7,5 @@
   },
   "homepage": "https://github.com/yagizdo/quiver",
   "repository": "https://github.com/yagizdo/quiver",
-  "skills": [
-    "./skills/",
-    "./commands/",
-    "./agents/"
-  ],
   "license": "MIT"
 }

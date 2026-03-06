@@ -1,4 +1,5 @@
 ---
+name: delete-all-handovers
 description: Delete all handover files for the current project to completely reset session history.
 ---
 

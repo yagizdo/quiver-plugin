@@ -1,4 +1,5 @@
 ---
+name: repair-skill
 description: Diagnose and fix a broken skill by analyzing its structure, verifying API references against current docs, and applying targeted repairs.
 argument-hint: "[optional: skill name or description of what broke]"
 ---

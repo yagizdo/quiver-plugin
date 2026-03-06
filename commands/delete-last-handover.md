@@ -1,4 +1,5 @@
 ---
+name: delete-last-handover
 description: Delete the most recent handover file to remove the last session's context.
 ---
 
