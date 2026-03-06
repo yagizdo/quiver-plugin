@@ -28,8 +28,10 @@ If there are **one or more `.md` files**:
 1. List the pre-deletion inventory:
    > **Files to delete ({count}):**
    > {bulleted list of all .md filenames}
-2. Ask the user: "Delete all {count} handover file(s)? This cannot be undone."
-3. **Only proceed if the user confirms.** If declined, stop and output:
+2. Ask the user using the `AskUserQuestion` tool with these actions:
+   - Question: "Delete all {count} handover file(s)? This cannot be undone."
+   - Actions: `["Yes, delete all", "Cancel"]`
+3. **Only proceed if the user selects "Yes, delete all".** If cancelled, stop and output:
    > **Cancelled** — no files were deleted.
 4. Delete them all using the Bash tool:
    ```
