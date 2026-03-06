@@ -20,7 +20,7 @@ Dependencies: `bash`, `claude` CLI.
 
 ### Adding a Command
 
-1. Create `commands/<name>.md` with a YAML front-matter `description` field.
+1. Create `commands/<name>.md` with YAML front-matter containing `name` and `description` fields. The `name` field must match the filename (without `.md`) — it enables prefix-free access (e.g., `/handover` instead of `/quiver:handover`).
 2. Commands are **prompts**, not scripts. `` !`…` `` blocks gather raw data; the rest of the file is a prompt that tells Claude how to interpret the data, make decisions, and take actions with its own tools. Never write a bare code block without accompanying prompt guidance — marketplace users need commands that work out of the box.
 3. Do not use `$()` command substitution, variable assignment, `if/else`, or logic-bearing pipes in `` !`…` `` blocks — Claude Code blocks these in marketplace plugins.
 4. Do not reference `CLAUDE_PLUGIN_ROOT` — it is unavailable in commands.
