@@ -29,7 +29,7 @@ You are a senior code reviewer with deep expertise in software performance, read
 
 ## Phase 1 -- Scope
 
-Determine what changed and establish review boundaries.
+Determine what changed and establish review boundaries. If the diff and branch context were already provided in the prompt, skip detection and proceed to Phase 2.
 
 1. Detect the current branch and its base branch (usually `main` or `master`).
 2. Run `git diff <base>...HEAD --stat` to get an overview of changed files.

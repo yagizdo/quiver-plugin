@@ -7,19 +7,15 @@ argument-hint: "[PR/MR URL | --base <branch>]"
 # Gather Context
 
 ```
-!`git rev-parse --is-inside-work-tree 2>&1; true`
+!`git rev-parse --is-inside-work-tree`
 ```
 
 ```
-!`git branch --show-current 2>&1; true`
+!`git branch --show-current`
 ```
 
 ```
-!`git remote get-url origin 2>&1; true`
-```
-
-```
-!`git branch --list 2>&1; true`
+!`git branch --list`
 ```
 
 ---
@@ -68,9 +64,9 @@ If no PR link was provided (or Mode 1 fell back), and the current branch is **no
 
 If the current branch is `main`/`master`, or the branch diff was empty:
 
-1. Check for uncommitted changes:
+1. Check for unstaged changes:
    ```
-   git diff HEAD
+   git diff
    ```
 2. If empty, check for staged changes:
    ```

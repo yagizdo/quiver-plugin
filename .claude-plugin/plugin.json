@@ -13,6 +13,6 @@
     "./commands/"
   ],
   "agents": [
-    "./agents/code-review.md"
+    "./agents/review/code-review.md"
   ]
 }
