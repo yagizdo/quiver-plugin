@@ -99,7 +99,7 @@ Then try your first command:
 
 | Agent | Description |
 |-------|-------------|
-| `code-review` (`quiver:review:code-review`) | 5-phase PR review with severity ratings and file:line references |
+| `code-review` (`quiver:review:code-review`) | 6-phase PR review with severity ratings and file:line references |
 
 ## How It Works
 

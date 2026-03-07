@@ -33,7 +33,7 @@ If there are **one or more `.md` files**:
    ```
    rm .claude/handovers/{filename}
    ```
-4. **Memory cleanup:** Read the auto-memory file (`MEMORY.md` in your memory directory). If it contains any references sourced from the deleted handover (e.g., "Pending Work" items, session-specific context), remove those entries using the Edit tool so stale context doesn't persist. After cleanup, inform the user:
+4. **Memory cleanup:** Read the auto-memory file (`MEMORY.md` in your memory directory). If it contains entries under a `## Pending Work` section or entries that reference specific handover filenames, session-specific task status (e.g., "Phase 2 complete", "blocked on X"), or branch work that was tracked in the deleted handover, remove those entries using the Edit tool. After cleanup, inform the user:
    > Also removed {N} handover-sourced references from MEMORY.md (e.g., pending work items, session context).
    If no matching entries were found, skip this message.
 

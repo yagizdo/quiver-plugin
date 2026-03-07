@@ -35,7 +35,7 @@ If `$ARGUMENTS` contains a pull request or merge request URL from any Git platfo
 1. Detect the platform from the URL pattern:
    - **GitHub:** `github.com/{owner}/{repo}/pull/{number}` -- use `gh pr diff {number} --repo {owner}/{repo}`
    - **GitLab:** `gitlab.com/{group}/{project}/-/merge_requests/{number}` -- use `glab mr diff {number}`
-   - **Bitbucket:** `bitbucket.org/{workspace}/{repo}/pull-requests/{number}` -- use `git diff $(git merge-base HEAD {base_branch})...HEAD` (Bitbucket CLI lacks a direct diff command; fall back to branch diff)
+   - **Bitbucket:** `bitbucket.org/{workspace}/{repo}/pull-requests/{number}` -- Bitbucket CLI lacks a direct diff command. Fall back to Mode 2 (branch diff).
    - **Other platforms:** Fall back to Mode 2 with a note:
      > Platform not recognized for direct diff fetching. Falling back to branch diff.
 2. Before running a platform CLI command (`gh`, `glab`), check if the CLI is available. If not, fall back to Mode 2 with a note:
@@ -94,7 +94,16 @@ Use the **Agent tool** to spawn the `code-review` agent. Pass it:
 
 The agent will handle all review phases (Scope, Best Practices, Security, Performance, Readability, Extensibility) and produce the final output in its own format (Summary, Findings, Verdict).
 
-Do **not** add any commentary after the agent's output. The agent's response is the final output.
+## Step 3 -- Write Review Report
+
+After the agent returns its output:
+
+1. Write the full review output as a markdown file to `/tmp/quiver-review-{timestamp}.md` (use `date '+%Y-%m-%d_%H-%M-%S'` for the timestamp).
+2. Print a short terminal summary:
+   - One-line verdict (Approve / Approve with suggestions / Request changes)
+   - Counts per severity (e.g., `2 Critical, 1 Warning, 3 Info`)
+   - Path to the full report file
+3. Do **not** print the full review in the terminal -- the file is the primary output.
 
 ---
 
@@ -102,6 +111,6 @@ Do **not** add any commentary after the agent's output. The agent's response is 
 
 - **Don't** prompt the user for input **after the base branch is confirmed** -- the review itself runs end-to-end without interaction.
 - **Don't** silently assume `main` or `master` as the base branch in Mode 2 -- always confirm with the user or require `--base`.
-- **Don't** summarize or reformat the agent's output -- present it exactly as returned.
+- **Don't** dump the full review into the terminal -- write it to the temp file and show only the summary.
 - **Don't** skip the mode announcement -- the user must know which diff source is being reviewed.
 - **Don't** use `git diff` without the triple-dot (`...`) syntax for branch diffs -- two-dot diffs include unrelated upstream changes.

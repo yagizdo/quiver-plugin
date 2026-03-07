@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: "Senior PR reviewer that analyzes diffs for best practices, performance, readability, and extensibility. Use when reviewing pull requests, branch diffs, or checking code quality before merge."
+description: "Senior PR reviewer that runs a 6-phase code review (scope, best practices, security, performance, readability, extensibility) with severity-rated findings."
 model: opus
 ---
 
