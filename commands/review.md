@@ -92,7 +92,7 @@ Use the **Agent tool** to spawn the `code-review` agent. Pass it:
 - The full diff from Step 1.
 - A brief note of which mode was used and the branch/PR context.
 
-The agent will handle all review phases (Scope, Best Practices, Performance, Readability, Extensibility) and produce the final output in its own format (Summary, Findings, Verdict).
+The agent will handle all review phases (Scope, Best Practices, Security, Performance, Readability, Extensibility) and produce the final output in its own format (Summary, Findings, Verdict).
 
 Do **not** add any commentary after the agent's output. The agent's response is the final output.
 
