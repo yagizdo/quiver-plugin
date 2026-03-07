@@ -18,10 +18,6 @@ argument-hint: "[PR/MR URL | --base <branch>]"
 !`git branch --sort=-committerdate | head -8`
 ```
 
-```
-!`which gh 2>/dev/null`
-```
-
 ---
 
 # Instructions
@@ -32,19 +28,21 @@ You are a review dispatcher. Your job is to determine the correct diff source, a
 
 Silently evaluate the conditions below in order. Use the **first** mode that matches.
 
-### Mode 1 -- PR Link Provided
+### Mode 1 -- PR/MR Link Provided
 
-If `$ARGUMENTS` contains a URL matching a pull request or merge request pattern (e.g., `github.com/.../pull/123`, `gitlab.com/.../merge_requests/123`):
+If `$ARGUMENTS` contains a pull request or merge request URL from any Git platform (GitHub, GitLab, Bitbucket, Azure DevOps, etc.):
 
-1. First, check the gathered `which gh` output. If `gh` is not installed (empty output), skip directly to Mode 2 with a note:
-   > `gh` CLI not found. Falling back to branch diff.
-2. Announce: `Reviewing PR from provided link...`
-3. Use the `gh` CLI to fetch the PR diff:
-   ```
-   gh pr diff <PR_NUMBER> --repo <OWNER/REPO>
-   ```
+1. Detect the platform from the URL pattern:
+   - **GitHub:** `github.com/{owner}/{repo}/pull/{number}` -- use `gh pr diff {number} --repo {owner}/{repo}`
+   - **GitLab:** `gitlab.com/{group}/{project}/-/merge_requests/{number}` -- use `glab mr diff {number}`
+   - **Bitbucket:** `bitbucket.org/{workspace}/{repo}/pull-requests/{number}` -- use `git diff $(git merge-base HEAD {base_branch})...HEAD` (Bitbucket CLI lacks a direct diff command; fall back to branch diff)
+   - **Other platforms:** Fall back to Mode 2 with a note:
+     > Platform not recognized for direct diff fetching. Falling back to branch diff.
+2. Before running a platform CLI command (`gh`, `glab`), check if the CLI is available. If not, fall back to Mode 2 with a note:
+   > `{cli}` CLI not found. Falling back to branch diff.
+3. Announce: `Reviewing PR/MR from provided link...`
 4. If fetching fails (permissions, invalid URL), print a warning:
-   > Could not fetch PR diff from the provided link. Falling back to branch diff.
+   > Could not fetch diff from the provided link. Falling back to branch diff.
    Then continue to Mode 2.
 5. If fetching succeeds, pass the diff to the agent in Step 2.
 
@@ -62,7 +60,9 @@ If no PR link was provided (or Mode 1 fell back), and the current branch is **no
    ```
    git diff {base_branch}...HEAD
    ```
-4. If the diff is empty, continue to Mode 3.
+4. If the diff is empty, announce:
+   > Branch diff against `{base_branch}` is empty. Checking for local uncommitted changes...
+   Then continue to Mode 3.
 5. Otherwise, pass the diff to the agent in Step 2.
 
 ### Mode 3 -- Uncommitted/Staged Changes
