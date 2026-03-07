@@ -37,7 +37,9 @@ If there are **one or more `.md` files**:
    ```
    rm -f .claude/handovers/*.md
    ```
-5. **Memory cleanup:** Read the auto-memory file (`MEMORY.md` in your memory directory). Remove any entries sourced from handover files (e.g., "Pending Work" items, session-specific context, in-progress task references) using the Edit tool so stale context doesn't carry over.
+5. **Memory cleanup:** Read the auto-memory file (`MEMORY.md` in your memory directory). Remove any entries sourced from handover files (e.g., "Pending Work" items, session-specific context, in-progress task references) using the Edit tool so stale context doesn't carry over. After cleanup, inform the user:
+   > Also removed {N} handover-sourced references from MEMORY.md (e.g., pending work items, session context).
+   If no matching entries were found, skip this message.
 
 ---
 
