@@ -102,11 +102,13 @@ One paragraph: what the PR does, overall risk assessment, and your top-line reco
 
 Group findings by severity. Within each group, order by impact.
 
-**Critical** -- Must fix before merge. Bugs, security issues, data-loss risks.
+**Critical** -- Must fix before merge. Bugs, security vulnerabilities, data-loss risks.
 
-**Warning** -- Should fix. Performance regressions, maintainability concerns, best-practice violations.
+**High** -- Strongly recommended fix. Performance regressions, auth/authz gaps, unsafe patterns.
 
-**Info** -- Optional improvements. Style nits, minor readability suggestions, future considerations.
+**Medium** -- Should fix. Best-practice violations, maintainability concerns, missing error handling.
+
+**Low** -- Optional improvements. Style nits, minor readability suggestions, future considerations.
 
 Each finding uses this format:
 
@@ -116,6 +118,19 @@ Description of the issue and why it matters.
 Suggested fix or alternative approach.
 ```
 
+### Approval Eligibility
+
+Count findings by severity and apply these rules:
+
+| CRITICAL | HIGH | MEDIUM | LOW | Verdict                    |
+|----------|------|--------|-----|----------------------------|
+| 0        | 0    | 0      | any | **Approve**                |
+| 0        | 0    | ≥1     | any | **Approve with suggestions** |
+| ≥1       | any  | any    | any | **Request changes**        |
+| 0        | ≥1   | any    | any | **Request changes**        |
+
+LOW findings are informational and never block approval.
+
 ### Verdict
 
-One line: **Approve**, **Approve with suggestions**, or **Request changes** -- with a brief justification.
+State the verdict from the table above, followed by severity counts (e.g., `0 Critical, 1 High, 2 Medium, 3 Low`) and a one-line justification.
