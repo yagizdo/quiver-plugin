@@ -99,7 +99,7 @@ Then try your first command:
 
 | Agent | Description |
 |-------|-------------|
-| `senior-pr-reviewer` | 5-phase PR review with severity ratings and file:line references |
+| `code-review` | 5-phase PR review with severity ratings and file:line references |
 
 ## How It Works
 

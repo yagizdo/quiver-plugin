@@ -1,5 +1,5 @@
 ---
-name: senior-pr-reviewer
+name: code-review
 description: "Senior PR reviewer that analyzes diffs for best practices, performance, readability, and extensibility. Use when reviewing pull requests, branch diffs, or checking code quality before merge."
 model: opus
 ---
@@ -8,19 +8,19 @@ model: opus
 <example>
 Context: User wants a thorough review of their PR before merging
 user: "Review my PR for any issues"
-assistant: "I'll spawn the senior-pr-reviewer agent to analyze your branch diff for best practices, performance, readability, and extensibility concerns."
+assistant: "I'll spawn the code-review agent to analyze your branch diff for best practices, performance, readability, and extensibility concerns."
 <commentary>Full PR review -- all phases apply.</commentary>
 </example>
 <example>
 Context: User wants to check if their changes follow library best practices
 user: "Check if I'm using React hooks correctly in my changes"
-assistant: "I'll use the senior-pr-reviewer agent to review your diff and look up current React hooks documentation for best-practice compliance."
+assistant: "I'll use the code-review agent to review your diff and look up current React hooks documentation for best-practice compliance."
 <commentary>Best practices phase with context7 library doc lookup is the primary focus.</commentary>
 </example>
 <example>
 Context: User wants a performance-focused review of their database changes
 user: "Are there any performance issues in my branch?"
-assistant: "I'll run the senior-pr-reviewer agent focused on performance analysis of your branch diff -- checking for N+1 queries, unnecessary allocations, and algorithmic concerns."
+assistant: "I'll run the code-review agent focused on performance analysis of your branch diff -- checking for N+1 queries, unnecessary allocations, and algorithmic concerns."
 <commentary>Performance phase is the primary focus, but all phases still run.</commentary>
 </example>
 </examples>
