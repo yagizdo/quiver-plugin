@@ -8,10 +8,8 @@
   "homepage": "https://github.com/yagizdo/quiver",
   "repository": "https://github.com/yagizdo/quiver",
   "license": "MIT",
-  "skills": [
-    "./skills/",
-    "./commands/"
-  ],
+  "skills": ["./skills/"],
+  "commands": ["./commands/"],
   "agents": [
     "./agents/review/code-review.md"
   ]

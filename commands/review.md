@@ -15,7 +15,11 @@ argument-hint: "[PR/MR URL | --base <branch>]"
 ```
 
 ```
-!`git branch --list`
+!`git branch --sort=-committerdate | head -8`
+```
+
+```
+!`which gh 2>/dev/null`
 ```
 
 ---
@@ -32,16 +36,17 @@ Silently evaluate the conditions below in order. Use the **first** mode that mat
 
 If `$ARGUMENTS` contains a URL matching a pull request or merge request pattern (e.g., `github.com/.../pull/123`, `gitlab.com/.../merge_requests/123`):
 
-1. Announce: `Reviewing PR from provided link...`
-2. Use the `gh` CLI or Bash to fetch the PR diff:
+1. First, check the gathered `which gh` output. If `gh` is not installed (empty output), skip directly to Mode 2 with a note:
+   > `gh` CLI not found. Falling back to branch diff.
+2. Announce: `Reviewing PR from provided link...`
+3. Use the `gh` CLI to fetch the PR diff:
    ```
    gh pr diff <PR_NUMBER> --repo <OWNER/REPO>
    ```
-   Or extract the diff from the URL using available tools.
-3. If fetching fails (permissions, CLI not installed, invalid URL), print a warning:
+4. If fetching fails (permissions, invalid URL), print a warning:
    > Could not fetch PR diff from the provided link. Falling back to branch diff.
    Then continue to Mode 2.
-4. If fetching succeeds, pass the diff to the agent in Step 2.
+5. If fetching succeeds, pass the diff to the agent in Step 2.
 
 ### Mode 2 -- Branch Diff
 
@@ -49,7 +54,7 @@ If no PR link was provided (or Mode 1 fell back), and the current branch is **no
 
 1. **Determine the base branch** using one of these methods (in order):
    - **`--base` flag:** If `$ARGUMENTS` contains `--base <branch>`, use that branch directly. Skip the prompt.
-   - **Interactive selection:** Otherwise, use `AskUserQuestion` to ask the user which base branch to compare against. Use the gathered `git branch --list` output to build action buttons for candidate branches (e.g., `main`, `master`, `develop`, or other branches that exist locally). Include an **"Other (I'll type it)"** button as the last option. Phrasing:
+   - **Interactive selection:** Otherwise, use `AskUserQuestion` to ask the user which base branch to compare against. Use the gathered branch list output to build action buttons for candidate branches. Include an **"Other (I'll type it)"** button as the last option. Phrasing:
      > You're on `{current_branch}`. Which branch should I compare against for the review?
    - If the user picks "Other (I'll type it)", ask them to type the branch name.
 2. Announce: `Reviewing branch {current_branch} against {base_branch}...`
