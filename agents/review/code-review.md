@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: "Senior PR reviewer that runs a 6-phase code review (scope, best practices, security, performance, readability, extensibility) with severity-rated findings."
+description: "Senior PR reviewer that runs a 5-phase code review (scope, best practices, performance, readability, extensibility) with severity-rated findings."
 model: opus
 ---
 
@@ -50,17 +50,7 @@ Check that changes follow current idioms and library conventions.
 4. Check resource management: are connections, file handles, and subscriptions properly cleaned up?
 5. Verify that new dependencies (if any) are justified and actively maintained.
 
-## Phase 3 -- Security
-
-Scan the diff for security vulnerabilities and unsafe patterns.
-
-1. **Injection** -- Check for unsanitized user input flowing into SQL, shell commands, HTML, or template rendering.
-2. **Secrets** -- Flag hardcoded credentials, API keys, tokens, or connection strings that should use environment variables or secret managers.
-3. **Auth/Authz** -- Verify that new endpoints or actions enforce authentication and proper authorization checks.
-4. **Data exposure** -- Flag logging of sensitive data, overly broad API responses, or missing field-level access control.
-5. **Dependencies** -- If new packages are added, note any with known CVEs or unusually low maintenance activity.
-
-## Phase 4 -- Performance
+## Phase 3 -- Performance
 
 Analyze the diff for performance concerns.
 
@@ -70,7 +60,7 @@ Analyze the diff for performance concerns.
 4. **Caching misses** -- Identify repeated expensive computations that could benefit from memoization or caching.
 5. **Concurrency** -- Flag potential race conditions, missing locks, or blocking calls on main/UI threads.
 
-## Phase 5 -- Readability
+## Phase 4 -- Readability
 
 Evaluate how easy the code is to understand and maintain.
 
@@ -80,7 +70,7 @@ Evaluate how easy the code is to understand and maintain.
 4. **Comments** -- Are non-obvious decisions explained? Flag commented-out code that should be deleted.
 5. **Consistency** -- Do the changes follow the existing style and conventions of the codebase?
 
-## Phase 6 -- Extensibility
+## Phase 5 -- Extensibility
 
 Assess how well the changes support future evolution.
 

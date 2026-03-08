@@ -1,6 +1,6 @@
 ---
 name: review
-description: Run a comprehensive code review using the code-review agent.
+description: Run a multi-agent code review (code quality + security audit) with synthesized findings.
 argument-hint: "[PR/MR URL | --base <branch>]"
 ---
 
@@ -22,7 +22,7 @@ argument-hint: "[PR/MR URL | --base <branch>]"
 
 # Instructions
 
-You are a review dispatcher. Your job is to determine the correct diff source, announce the review mode, then delegate the full review to the `code-review` agent.
+You are a review orchestrator. Your job is to determine the correct diff source, announce the review mode, dispatch multiple review agents in parallel, then synthesize their findings into a single unified report.
 
 ## Step 1 -- Determine Review Mode
 
@@ -85,23 +85,81 @@ If the current branch is `main`/`master`, or the branch diff was empty:
 
 ---
 
-## Step 2 -- Dispatch to Agent
+## Step 2 -- Parallel Agent Dispatch
 
-Use the **Agent tool** to spawn the `code-review` agent. Pass it:
+Spawn **all** review agents simultaneously using multiple Agent tool calls in a single response. Each agent receives the same inputs:
 
 - The full diff from Step 1.
 - A brief note of which mode was used and the branch/PR context.
 
-The agent will handle all review phases (Scope, Best Practices, Security, Performance, Readability, Extensibility) and produce the final output in its own format (Summary, Findings, Verdict).
+### Always-run agents
 
-## Step 3 -- Write Review Report
+| Agent             | Focus                                                                 |
+|-------------------|-----------------------------------------------------------------------|
+| `code-review`     | Best practices, performance, readability, extensibility               |
+| `security-audit`  | Attack surfaces, input flows, auth/authz, secrets, data exposure      |
 
-After the agent returns its output:
+### Adding future agents
 
-1. Write the full review output as a markdown file to `/tmp/quiver-review-{timestamp}.md` (use `date '+%Y-%m-%d_%H-%M-%S'` for the timestamp).
+To add a new review agent, create it under `agents/review/`, register it in `plugin.json`, and add a row to the table above. No other changes are needed -- the orchestrator dispatches every agent listed here.
+
+## Step 3 -- Synthesize Findings
+
+After **all** agents return, merge their outputs into a single unified report. Follow these rules:
+
+1. **Deduplicate.** If two agents flag the same issue (e.g., code-review's Performance phase and security-audit both flag a denial-of-service risk on the same line), keep the more detailed finding and discard the other. Prefer the specialist agent's version when depth is comparable.
+2. **Unified severity.** Reclassify all findings into a single scale:
+   - **Critical** -- Must fix before merge. Actively exploitable vulnerabilities, data-loss bugs, auth bypass.
+   - **High** -- Strongly recommended. Performance regressions, authorization gaps, unsafe patterns.
+   - **Medium** -- Should fix. Best-practice violations, maintainability concerns, defensive gaps.
+   - **Low** -- Optional. Style nits, hardening opportunities, future considerations.
+3. **Tag the source.** Prefix each finding with the agent that produced it for traceability:
+   ```
+   [SEVERITY] (code-review) file_path:line_number -- Short title
+   ```
+4. **Unified verdict.** Apply the strictest verdict across all agents:
+   - If **any** agent produces a Critical or High finding --> **Request changes**
+   - If the worst finding is Medium --> **Approve with suggestions**
+   - If only Low or no findings --> **Approve**
+
+### Synthesized report structure
+
+```markdown
+# Code Review Report
+
+## Summary
+One paragraph: what the PR does, overall risk, top-line recommendation.
+
+## Agents Dispatched
+- code-review: [verdict]
+- security-audit: [verdict]
+
+## Findings
+### Critical
+[merged critical findings]
+
+### High
+[merged high findings]
+
+### Medium
+[merged medium findings]
+
+### Low
+[merged low findings]
+
+## Verdict
+[Unified verdict] -- [severity counts] -- [one-line justification]
+```
+
+## Step 4 -- Write Review Report
+
+After synthesis is complete:
+
+1. Write the full synthesized report as a markdown file to `/tmp/quiver-review-{timestamp}.md` (use `date '+%Y-%m-%d_%H-%M-%S'` for the timestamp).
 2. Print a short terminal summary:
    - One-line verdict (Approve / Approve with suggestions / Request changes)
-   - Counts per severity (e.g., `2 Critical, 1 Warning, 3 Info`)
+   - Counts per severity (e.g., `2 Critical, 1 High, 3 Medium, 5 Low`)
+   - Which agents ran and their individual verdicts
    - Path to the full report file
 3. Do **not** print the full review in the terminal -- the file is the primary output.
 
@@ -114,3 +172,6 @@ After the agent returns its output:
 - **Don't** dump the full review into the terminal -- write it to the temp file and show only the summary.
 - **Don't** skip the mode announcement -- the user must know which diff source is being reviewed.
 - **Don't** use `git diff` without the triple-dot (`...`) syntax for branch diffs -- two-dot diffs include unrelated upstream changes.
+- **Don't** run agents sequentially -- always dispatch all agents in parallel (multiple Agent tool calls in one response).
+- **Don't** present raw agent outputs side-by-side -- always synthesize into a single merged report with deduplication.
+- **Don't** let duplicate findings from different agents inflate severity counts -- deduplicate before counting.
