@@ -8,10 +8,15 @@
   "homepage": "https://github.com/yagizdo/quiver",
   "repository": "https://github.com/yagizdo/quiver",
   "license": "MIT",
-  "skills": ["./skills/"],
-  "commands": ["./commands/"],
+  "skills": [
+    "./skills/"
+  ],
+  "commands": [
+    "./commands/"
+  ],
   "agents": [
-    "./agents/review/code-review.md"
+    "./agents/review/code-review.md",
+    "./agents/review/security-audit.md"
   ],
   "mcpServers": {
     "context7": {
