@@ -30,7 +30,7 @@ Then try your first command:
 | Commands | 8 |
 | Hooks | 1 |
 | Skills | 3 |
-| Agents | 1 |
+| Agents | 2 |
 
 ## Commands
 
@@ -99,7 +99,8 @@ Then try your first command:
 
 | Agent | Description |
 |-------|-------------|
-| `code-review` (`quiver:review:code-review`) | 6-phase PR review with severity ratings and file:line references |
+| `code-review` (`quiver:review:code-review`) | 5-phase PR review with severity ratings and file:line references |
+| `security-audit` (`quiver:review:security-audit`) | Adversarial security auditor covering web, API, and mobile attack surfaces |
 
 ## How It Works
 
@@ -108,6 +109,10 @@ Then try your first command:
 - **Retention policy** — keeps the 3 most recent handovers, prunes older ones automatically
 - **Agent orchestration** — discover your local and plugin agents, assemble teams, and run subtasks in parallel
 - **Agent scaffolding** — create new agents interactively with smart defaults and best practices
+
+## External Dependencies
+
+This plugin connects to [context7](https://mcp.context7.com) as an MCP server for library documentation lookups. The connection is configured in `plugin.json` under `mcpServers`. No authentication is required. Library/framework names from your codebase are sent to the service during best-practices checks.
 
 ## Uninstall
 
