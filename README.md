@@ -88,7 +88,7 @@ The script symlinks Quiver into every runtime it detects, and prints the install
 | Component | Count |
 |-----------|-------|
 | Hooks | 3 |
-| Skills | 27 |
+| Skills | 26 |
 | Agents | 20 |
 
 ## What Do I Use?
@@ -125,24 +125,22 @@ After the last group merges, the resolved test command runs once on the combined
 | Situation | Command | What happens |
 |-----------|---------|--------------|
 | A Figma frame is ready to become code | `/design` | Reads the selected nodes through the figma-bridge MCP, maps Figma variables onto the project's own theme tokens, and writes a self-contained plan to `.claude/plans/` |
-| Want the frame built and measured without babysitting it | `/design --auto` | Same extraction and same questions, then straight through the build and the fidelity measurement with no further prompt |
-| Design plan is ready, want it built pixel-accurate | `/design-build` | Implements each node against its embedded spec, then fixes whatever `/design-verify` reports, under a bounded retry budget |
-| Built UI is on screen, want to know how far off it is | `/design-verify` | Captures the running app on a connected phone when there is one and the simulator otherwise, normalizes both images to a common logical width, measures the deviations, and writes a report to disk |
+| Want the frame built without babysitting it | `/design --auto` | Same extraction and same questions, then straight through the build with no further prompt |
+| Design plan is ready, want it built pixel-accurate | `/design-build` | Implements each node against its embedded spec, gating every task on the project's build or tests under a bounded retry budget |
 
 ```
 /design                    # extract whatever is selected in Figma
 /design 4029:12345         # extract a specific node by ID
-/design --auto             # extract, then build and measure without stopping
+/design --auto             # extract, then build without stopping
 /design --auto --no-commit # same, and write no commit whatever the plan says
 /design-build              # pick a design plan and build it
-/design-verify             # measure a built screen against its spec
 ```
 
-`--auto` removes the handoffs between the three stages, not the questions that decide what gets built.
+`--auto` removes the handoff between the two stages, not the questions that decide what gets built.
 
 - `/design` still asks which file, which nodes, what an unmapped variable resolves to, how the build should commit and verify, and whether to overwrite a plan that already exists for the same screen. When a selection expands into many nodes and you described none of them, it also asks which of those nodes the build should implement.
-- Those questions all arrive in one call. After that the run stays quiet until the fidelity summary.
-- One node still gets three fix attempts. Auto mode records whatever deviation is left over and moves on rather than asking.
+- Those questions all arrive in one call. After that the run stays quiet until the build summary.
+- One task still gets three attempts at its verification gate. Auto mode records a gate that is still failing and moves on rather than asking.
 
 `--no-commit` forces `commit_strategy: none` for a single run.
 
@@ -153,8 +151,8 @@ After the last group merges, the resolved test command runs once on the combined
 
 `/design` is the only stage that talks to Figma.
 
-- The plan carries every measurement, token, and layout anchor `/design` produced, so `/design-build` runs with Figma disconnected and `/design-verify` measures against the plan alone.
-- `/design-verify` reads any file with a `### Node Specs` section, including a measurement spec you wrote by hand. It does not need a screenshot or an installed comparison tool.
+- The plan carries every measurement, token, and layout anchor `/design` produced, so `/design-build` runs with Figma disconnected.
+- The plan keeps its per-node measurement specs and its reference screenshots. Nothing in Quiver measures the built UI against them, so `/design-build` reports fidelity as `skipped -- no verifier` and the numbers stay there for whatever does the measuring.
 - Setup is in [External Dependencies](#external-dependencies).
 
 ### Reviewing Code
@@ -310,35 +308,7 @@ Add the server to your MCP config:
 
 The Figma plugin side is a manual import from the bridge's [releases page](https://github.com/gethopp/figma-mcp-bridge/releases), and its README carries the current steps. Leave the plugin running inside the file you are reading -- it holds the WebSocket, and closing it drops the connection mid-extraction.
 
-`/design` only calls the bridge's read tools. `/design-build` and `/design-verify` never call it at all. Every other Quiver skill works without it.
-
-### ImageMagick (optional, for `/design-verify`)
-
-`/design-verify` works with nothing installed -- it reads the built UI against the spec and marks the report low confidence. Installing ImageMagick upgrades that structural read into a measured differing-pixel count:
-
-```
-brew install imagemagick
-```
-
-The skill probes `magick -version` and `magick -list metric`, picks the `PDC` metric when the build has it, and records which comparison path produced each report. Nothing breaks without it; the reports simply carry fewer numbers.
-
-Device capture is optional in the same way. `/design-verify` uses a connected phone when one is attached and falls back to the simulator when there is not, because a phone renders the real safe-area insets and display scaling. Which tool takes the screenshot depends on the stack:
-
-| Target | Tool | Install |
-|--------|------|---------|
-| iOS simulator | `xcrun simctl` | ships with Xcode |
-| Android phone or emulator | `adb` | ships with the Android SDK |
-| Physical iOS device | `pymobiledevice3` | not suggested -- used only when it already resolves |
-| Flutter app anywhere it runs, phone included | `marionette` | `dart pub global activate marionette_cli`, plus `marionette_flutter` in the app |
-| Web | Playwright MCP | MCP config |
-
-marionette connects to the running app's Dart VM service instead of the device, which is how it screenshots a physical phone with no device tooling installed. The app has to be running in debug with `MarionetteBinding` initialized in `main.dart`.
-
-The skill probes for these before it picks a target. When nothing on the machine can screenshot the attached phone, it drops the phone from the order and uses the simulator, since building on a device you cannot photograph loses the measurement the step exists for. An absent tool prints one line and the run continues to the next option.
-
-`pymobiledevice3` is the one row with no install hint. On iOS 17+ it needs a root tunnel daemon and a mounted Developer Disk Image, which is more than a screenshot is worth from a tool you did not pick, so the skill uses it when it is already on the machine and never suggests installing it. Apple ships no alternative -- `xcrun devicectl` has no screenshot subcommand -- so a non-Flutter iOS project without it captures the simulator.
-
-No iOS MCP server screenshots a physical device. The xcodebuild-wrapping servers build, install, launch, and test on one, and their screenshot tools only cover the simulator, so every native row above is a plain CLI command. Web is the exception: the browser is where the app runs, so that row goes through the Playwright MCP.
+`/design` only calls the bridge's read tools. `/design-build` never calls it at all. Every other Quiver skill works without it.
 
 ## CLI Notes
 

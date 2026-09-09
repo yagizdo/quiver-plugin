@@ -1,8 +1,8 @@
 ---
 name: design-build
-description: "Execute a design plan produced by /design -- implements each node against its embedded measurement spec, delegates fidelity measurement to /design-verify, and fixes the reported deviations under a bounded retry budget. Runs with Figma disconnected; the plan carries every number it needs. --auto runs the whole loop without a prompt."
+description: "Execute a design plan produced by /design -- implements each node against its embedded measurement spec and gates every task on the project's build or tests under a bounded retry budget. Runs with Figma disconnected; the plan carries every number it needs. --auto runs the whole loop without a prompt."
 argument-hint: "<path to a *-design-plan.md, or empty to pick one> [--auto] [--no-commit]"
-when-to-use: "user wants to build a design plan into working pixel-accurate UI -- '/design-build', '/design-build --auto', 'build the design plan', 'implement the figma plan', 'make it match the design', 'fix the pixel differences', 'build the plan without asking me again', 'build it but do not commit anything'"
+when-to-use: "user wants to build a design plan into working pixel-accurate UI -- '/design-build', '/design-build --auto', 'build the design plan', 'implement the figma plan', 'make it match the design', 'build the plan without asking me again', 'build it but do not commit anything'"
 ---
 
 # Gather Context
@@ -23,7 +23,7 @@ when-to-use: "user wants to build a design plan into working pixel-accurate UI -
 
 # Instructions
 
-You are a design implementation specialist. You take a plan written by `/design`, build it, hand the fidelity measurement to `/design-verify`, and fix what its report says is off. You do not open Figma -- the plan is self-contained -- and you do not capture or measure anything yourself.
+You are a design implementation specialist. You take a plan written by `/design`, build it against the numbers the plan already carries, and gate every task on the project's own build or tests. You do not open Figma -- the plan is self-contained -- and you do not capture, screenshot, or measure anything.
 
 **Announce:** "Using the design-build skill to implement the design plan."
 
@@ -45,9 +45,9 @@ whatever the plan says. Strip it before resolving a path too. It is independent 
 `--auto`: either flag works without the other.
 
 Auto mode changes three decisions and nothing else: which plan loads when several match
-(Phase 1), what happens after three failed fidelity attempts (Phase 3c), and the handoff at
-the end (Phase 4). Every measurement, tolerance, gate verdict, and commit rule is identical
-in both modes -- auto mode never lowers a bar, it only stops asking.
+(Phase 1), what happens after three failed fix attempts (Phase 3c), and the handoff at the
+end (Phase 4). Every gate verdict and commit rule is identical in both modes -- auto mode
+never lowers a bar, it only stops asking.
 
 **Every `AskUserQuestion` call site in this skill sits on an `Otherwise` line, with its
 auto-mode branch directly above it.** A prompt added any other way stalls an auto run
@@ -74,7 +74,7 @@ site takes that shape or it does not go in.
 ```
 **Stop here.**
 
-**Check the references.** Every path under `screenshot_dir` named in a node spec must exist on disk. If any are missing, print which ones and continue. What a missing reference means for verification is `/design-verify`'s decision, not this skill's.
+**Check the references.** Every path under `screenshot_dir` named in a node spec must exist on disk. If any are missing, print which ones and continue. A missing reference image never blocks the build: the plan carries every number the implementation needs, and the images are there for a human reading the plan.
 
 ### Frontmatter fields this skill reads
 
@@ -86,8 +86,7 @@ absent:
 |-------|----------|---------------------|
 | `commit_strategy` | Phase 3d's commit policy | `none` |
 | `verify_gate` | which command must pass before a commit | `none` |
-| `capture_preference` | whether Phase 2b opens a run session at all | `auto` |
-| `screenshot_dir` | where the deviation reports land | `.claude/plans/assets/<slug>/`, slug derived from the plan filename |
+| `screenshot_dir` | where the plan's reference images live | `.claude/plans/assets/<slug>/`, slug derived from the plan filename |
 
 Plans written before these fields existed carry none of them, and they live in
 `.claude/plans/`, which is gitignored -- no migration can reach them. The defaults are
@@ -109,71 +108,6 @@ On the default branch, resolve `design/<slug>` from the plan's slug, then check 
    - Does not exist: `git checkout -b design/<slug>`.
 
 Read `git branch --show-current` back afterwards and print the branch the build actually runs on. A silent checkout failure otherwise puts the whole run on the default branch.
-
-## Phase 2b -- Open the Run Session
-
-`/design-verify --mode build` never trusts an already-running instance as fresh -- its
-"The app must be running and fresh" section is the contract, and this phase is what
-satisfies it. Rebuilding from scratch once per task satisfies it too, and is the slowest
-way to.
-
-Open **one** run session for the whole run, hot reload it after each task's
-implementation, and tear it down when the run ends.
-
-**Start.** After the branch is resolved and before the first task, launch the app in the
-background with the Bash tool, using the build-and-launch command `/design-verify` lists
-for the resolved target. Record that this run owns the session and print once:
-`> Run session: {target} -- {command}`, or `> Run session: none -- each verify rebuilds.`
-Naming the command is the only record of what ran: an unattended run prints no prompt,
-and for a stack the launch table does not name, the command is resolved out of the
-repository's own docs rather than from a fixed binary.
-
-**A Flutter session prints a VM service URI -- keep it.** `flutter run` writes
-`A Dart VM Service on <device> is available at: http://127.0.0.1:<port>/<token>/` to its
-output once the app is up. That address is printed in its HTTP form and the capture step
-needs the WebSocket form, so convert it before passing it on: swap the `http` scheme for
-`ws` and append `ws`, giving `ws://127.0.0.1:<port>/<token>/ws`. That URI is what lets
-`/design-verify` capture the app it was launched on. It is the difference between
-measuring the app on the phone it was launched on and falling back to a simulator-only
-screenshot path. Read it out of the session's streamed output, hold it for the run, and
-pass it on every 3b invocation. Re-read it after a session restart: the port and the token
-are both regenerated, and a stale URI fails to connect rather than reconnecting.
-
-Start no session when no run target resolves, and none when the plan's
-`capture_preference` is `skip` or `manual`. `/design-verify` runs no build-and-launch on
-those plans, so a session would have nothing to keep fresh. Print
-`> Run session: none -- this plan captures nothing.`
-
-**A failed launch costs a session attempt.** Three failed launches end session ownership
-for the rest of the run. That budget is the session's own and is separate from 3c's
-per-task counter -- a task that has not started has no attempt to spend, and a run that
-could not launch must not silently cost the first task its fix budget. Once it is spent,
-stop trying to own a session and fall through to "No session owned" below.
-
-**Hot reload after 3a, before 3b.** The reload is what makes the session fresh; skipping
-it hands `/design-verify` the previous task's binary.
-
-| Target | Refresh |
-|--------|---------|
-| Flutter | write `r` to the running `flutter run` process (`R` after a change it cannot hot reload, such as a new asset or a `main()` edit) |
-| Web dev server | nothing to run -- the dev server's own HMR already reloaded |
-| iOS or Android | no hot reload exists; reinstall and relaunch with that target's command |
-| Any other target | assume no hot reload: restart the session with the command that started it. When restarting is not possible, tear the session down and fall through to "No session owned" below. |
-
-A stack this table does not name is not an error. It takes the last row, and a stack whose
-session could not start or restart takes the no-session path -- the run still builds every
-task and still verifies each one.
-
-**Teardown on every exit path.** Kill the process this run started when the run ends --
-after the last task, after a stop, when the user picks "Stop here", and when the user
-cancels any `AskUserQuestion`. A cancelled question is an exit path, not a pause. A
-skipped task and a failed gate are not exit paths -- the run continues to the next task
-and keeps the session. Never kill a process this run did not start: a simulator or dev
-server the user had open before the run stays open.
-
-**No session owned.** When the session never started, its budget was spent, or teardown
-already ran, each 3b invocation falls back on `/design-verify`'s own build-and-launch
-under its own 3-attempt cap. The run continues; it is slower, not blocked.
 
 ## Phase 3 -- Build Loop
 
@@ -202,86 +136,42 @@ Three spec lines override the raw measurements when they are present:
 
 Follow the plan's File Map. Do not create files the plan does not list.
 
-### 3b -- Verify
-
-This skill does not capture and does not compare. It delegates, then reads a file.
-
-1. **Note the report's current state.** Read `<screenshot_dir>/verify/<task-id>.md` if it
-   exists and keep its `created:` value. Absent is a state too -- record that instead.
-2. Invoke the `design-verify` skill with the plan path, this task's node IDs, this task's
-   ID, and mode `build`:
-   `/design-verify <plan path> --nodes <this task's node IDs> --task <task id> --mode build`
-
-   Add `--vm-uri <uri>` when the run session holds one. Without it `/design-verify` has
-   to resolve the URI on its own, which only works when it ran the launch itself -- and
-   when this run owns the session, it did not. On a physical device that means no capture
-   at all.
-3. Re-read `<screenshot_dir>/verify/<task-id>.md`.
-
-**The report path is fixed per task, so the file's existence proves nothing on a re-run.**
-A verify that aborts before writing -- a shut-down simulator, a bad plan path, a denied
-permission -- leaves the previous attempt's report exactly where the new one would go.
-Compare `created:` against the value noted in step 1. Unchanged, or still absent, means
-this attempt's verification did not run: treat the task as `unverified`, record that, and
-continue to 3d. Do not loop, do not re-invoke, and do not read the stale deviations as
-current -- doing so spends the retry budget re-fixing a delta that was already fixed.
-
-**Classify the report before acting on it.** Deviation rows are not the only signal:
-
-| Report state | Status |
-|--------------|--------|
-| deviation rows present | go to 3c |
-| empty table, `comparison_path: imagemagick-*`, `confidence: high` | `matched` -- go to 3d |
-| empty table, any other `comparison_path`, `confidence: low`, or nodes listed as skipped under `## Notes` | `unverified` -- record the reason from the report, go to 3d |
-| `created:` unchanged, or the file is absent | `unverified` (verification did not run) -- go to 3d |
-
-**An empty deviation table is not by itself a pass.** `spec-check` means nothing was
-compared, `confidence: low` means the comparison could not be trusted, and a node under
-`## Notes` was never captured at all. Every one of those produces an empty table, and
-reporting any of them as `matched` claims a fidelity measurement that never happened.
-
-All capture resolution, image normalization, metric selection, check order, and tolerance
-live in `/design-verify`. They are not restated here, and this skill does not second-guess
-them.
+When the implementation is written, go to **3d**. 3c is reached only from a failed gate,
+never directly from here.
 
 ### 3c -- Fix, Bounded
 
-There are two ways in: 3b classified the report as carrying deviation rows, or 3d's gate
-failed and handed its output here as the deviation. `matched` and `unverified` never
-enter -- both go straight to 3d.
+There is one way in: 3d's verification gate failed and handed its output here. A cleared
+gate never enters, and a task whose gate is `none` never enters either.
 
-Fix the largest delta in the report's deviation table first, then re-run 3b --
-re-invoke `design-verify` and re-read the report. **Three attempts maximum per task**,
-counting the initial implementation as attempt one.
+Fix what the gate reported, then return to 3d. **Three attempts maximum per task**,
+counting the initial implementation as attempt one. Every failure kind draws on this
+counter -- one counter per task.
 
-A failed run-session launch (Phase 2b) spends a session attempt, not one of these. That
-is the one budget kept separate: a task that has not started yet has no attempt to spend.
-Every other failure kind draws on this counter -- one counter per task.
+After the third attempt still leaves the gate failing, **stop**. Do not keep looping.
 
-After the third attempt still leaves deviations, **stop**. Do not keep looping.
-
-**In auto mode**, take the "Accept as-is" path without asking: record the remaining
-deviations with their measured deltas, leave the code in place, and continue to 3d on the
-same terms that bullet already sets -- including its rule about not re-running a gate this
-task already failed. Print one line so the run stays readable:
+**In auto mode**, take the "Accept as-is" path without asking: record the failure with the
+gate output that produced it, leave the code in place, and continue to 3d on the same
+terms that bullet already sets -- including its rule about not re-running a gate this task
+already failed. Print one line so the run stays readable:
 
 ```
-> Task {id}: {N} deviations accepted after 3 attempts.
+> Task {id}: gate still failing after 3 attempts -- accepted.
 ```
 
 The budget is never extended in auto mode. "Try 3 more attempts" is a human's call, and a
-loop that grants itself more attempts has no cap. Phase 4 lists every accepted deviation
-with its delta and its report path, which is where the user decides whether to revisit.
+loop that grants itself more attempts has no cap. Phase 4 lists every accepted failure
+with its gate output, which is where the user decides whether to revisit.
 
 **Otherwise** call `AskUserQuestion`:
 
-> Task {id} still differs from the design after 3 attempts:
-> {one line per remaining deviation with its measured delta}
+> Task {id} still fails its verification gate after 3 attempts:
+> {the failing lines of the gate output}
 
 Buttons: `["Accept as-is -- note it and move on", "I'll describe the fix", "Try 3 more attempts", "Skip this task"]`
 
-- **Accept as-is:** record the remaining deviations in the final summary and continue to 3d. When this loop was entered from a gate failure, 3d does not re-run the gate -- see the gate budget below.
-- **I'll describe the fix:** take the user's description, apply it, re-run 3b once, then continue to 3d regardless of the result.
+- **Accept as-is:** record the failure in the final summary and continue to 3d. 3d does not re-run the gate on that path -- see the gate budget below.
+- **I'll describe the fix:** take the user's description, apply it, then continue to 3d regardless of the result.
 - **Try 3 more attempts:** reset the counter and return to the top of 3c. This is the only way the budget grows -- it is never extended automatically.
 - **Skip this task:** undo what this task wrote, mark it skipped, continue to the next task. Undo has one mechanism per environment, and none of them is `git revert` -- under the default `commit_strategy: none` there is no commit to revert:
   - **Git available:** `git restore -- <files this task modified>` for tracked files, then delete the files this task created. Take that file list from 3a's own record of what it wrote, never from `git status` -- an earlier task's uncommitted work sits in the same tree and is not this task's to undo.
@@ -307,7 +197,7 @@ for any failed gate. This is the only branch in which a `failed` verdict is writ
 the gate having run.
 
 **The gate runs at most twice per task.** Run it; on a failure, feed the failure output
-back into 3c as a deviation and re-enter the fix loop under the same 3-attempt budget;
+back into 3c and re-entering the fix loop under the same 3-attempt budget;
 then run it one final time. That second run is the last for this task whatever it returns.
 
 Record the outcome as this task's **gate verdict**, `cleared` or `failed`. A `cleared`
@@ -353,17 +243,25 @@ is the only way to run a plan carrying `per-task` or `single` without commits, b
 
 Print a table:
 
-| Task | Status | Fidelity | Gate |
-|------|--------|----------|------|
-| 1 | done | matched | cleared |
-| 2 | done | 2 deviations accepted | cleared |
-| 3 | done | unverified (spec-check, no capture tooling) | failed |
-| 4 | skipped (changes left in place) | -- | -- |
+| Task | Status | Gate |
+|------|--------|------|
+| 1 | done | cleared |
+| 2 | done | cleared |
+| 3 | done | failed |
+| 4 | skipped (changes left in place) | -- |
 
-`matched` means a measured comparison found no deviations. Anything 3b classified as
-`unverified` prints as `unverified` with the reason from the report -- never as `matched`.
+Then print exactly one line for the run, whatever the plan and the tasks contained:
 
-Then list every accepted deviation with its measured delta and the file it lives in, so the user can decide later whether to revisit. Name the deviation report path for each task, so the measurements stay reachable after this run ends. Name every task whose changes were left in place after a skip.
+```
+Fidelity: skipped -- no verifier
+```
+
+Nothing in this skill measures the built UI against the plan's Node Specs, and no other
+skill does it either. Reporting the step as skipped with its reason is the
+`skipped: <reason>` grammar of `skills/verification/SKILL.md`; leaving it out of the
+summary would read as a step that ran and passed.
+
+Then list every accepted gate failure with the task and the file it lives in, so the user can decide later whether to revisit. Name every task whose changes were left in place after a skip.
 
 Print the branch name and the commit count.
 
@@ -373,9 +271,8 @@ Print the branch name and the commit count.
 > Next: /review to read the diff, /commit to commit, /create-pr to open a PR.
 ```
 
-Invoke none of them. The consent this run carries covers the build and the measurement --
-not a review, not a commit the plan's `commit_strategy` did not authorize, and not a pull
-request.
+Invoke none of them. The consent this run carries covers the build -- not a review, not a
+commit the plan's `commit_strategy` did not authorize, and not a pull request.
 
 Otherwise call `AskUserQuestion`:
 
@@ -397,11 +294,9 @@ Do not open a pull request directly -- `/create-pr` owns that.
 Follow all rules in `.claude/rules/skill-rules.md`. Additionally:
 
 - **Don't** call figma-bridge tools. This skill runs with Figma disconnected; the plan carries the data.
-- **Don't** capture or compare here. 3b delegates to `/design-verify` and reads its report.
-- **Don't** restate `/design-verify`'s capture commands, tolerance, or check order. One copy, in one file.
-- **Don't** treat an absent deviation report as a pass. A clean verification still writes a report.
-- **Don't** treat an empty deviation table as a pass either. Read `comparison_path` and `confidence` first.
-- **Don't** trust a report at the task's path without checking `created:` against the value noted before the invocation. The path is fixed, so a stale report sits exactly where a fresh one would.
+- **Don't** capture, screenshot, or compare here. Nothing in this skill measures the built UI, and no other skill does it for you.
+- **Don't** report a fidelity result. The Phase 4 line is `Fidelity: skipped -- no verifier`, on every run.
+- **Don't** drop that line from the summary. A step left out of the summary reads as a step that passed.
 - **Don't** loop the fix cycle without a bound. Three attempts, then ask -- or, in auto mode, accept and move on.
 - **Don't** re-run the gate after "Accept as-is". That is the 3c-to-3d cycle the attempt budget does not bound.
 - **Don't** extend the retry budget on your own. Only the user's "Try 3 more attempts" resets it, and auto mode never reaches that button.
@@ -415,7 +310,7 @@ Follow all rules in `.claude/rules/skill-rules.md`. Additionally:
 - **Don't** write `--no-commit` into the plan. It is one run's override, and the plan is what the user chose at Step 8.
 - **Don't** commit past a failing verification gate. Under `single` that means withholding the whole accumulate commit, not skipping one task's files.
 - **Don't** answer "Skip this task" with `git revert`. The default strategy writes no commit, so there is nothing to revert.
-- **Don't** stage the plan file or the screenshot assets.
+- **Don't** stage the plan file or the reference assets.
 - **Don't** restate the plan frontmatter schema. `skills/design/SKILL.md` Step 9 declares it; this file lists only the fields it reads.
 
 ---
@@ -426,7 +321,7 @@ Follow all rules in `.claude/rules/skill-rules.md`. Additionally:
 
 **Setup:**
 - A design plan written by `/design` with at least two tasks, one node carrying a `Reconciliation:` line, and reference PNGs present under `screenshot_dir`.
-- A second, legacy plan carrying none of `commit_strategy`, `verify_gate`, or `screenshot_dir`.
+- A second, legacy plan carrying neither `commit_strategy` nor `verify_gate`.
 - A runnable project.
 
 **Expected behavior:**
@@ -436,25 +331,19 @@ Follow all rules in `.claude/rules/skill-rules.md`. Additionally:
 4. The legacy plan loads and builds on the documented defaults, committing nothing.
 5. A node with a `Fit:` axis of `fill` is implemented with the framework's fill mechanism, not the `Box:` literal.
 6. A node with a `Content:` line carrying an i18n key produces that key, never invented copy.
-7. 3b invokes `/design-verify` with mode `build` and reads `<screenshot_dir>/verify/<task-id>.md`. No capture command runs in this skill.
-8. An absent deviation report is recorded as `unverified` and does not loop or read as a pass. A report whose `created:` is unchanged after the invocation is recorded the same way, and its stale deviations are not re-fixed.
-8b. A report with an empty deviation table and `comparison_path: spec-check` (or `confidence: low`, or a node listed under `## Notes`) is recorded as `unverified`, never `matched`.
+7. No capture, screenshot, or image-comparison command runs anywhere in the run, and no run session is opened.
+8. Phase 4 prints `Fidelity: skipped -- no verifier` exactly once, on every run, including a run in which every task cleared its gate.
 8c. On the default branch with an existing `design/<slug>`, the run checks that branch out instead of failing at `git checkout -b`. With a dirty working tree it stays on the current branch and says so.
 9. A node with a `Reconciliation:` line and a precedent `file:line` causes that file range to be read before the positioning code is written.
 10. A node with a `Reconciliation:` line and `No precedent found` produces content constrained to the chrome-excluded region, with a comment naming what it centers within.
-11. After three failed attempts on one task, `AskUserQuestion` appears with the four options. The loop never continues silently.
-11b. In auto mode the same point accepts the remaining deviations, prints the one-line count, and continues to 3d without asking. The 3-attempt budget is not extended.
+11. After three failed gate attempts on one task, `AskUserQuestion` appears with the four options. The loop never continues silently.
+11b. In auto mode the same point accepts the failure, prints the one-line notice, and continues to 3d without asking. The 3-attempt budget is not extended.
 12. "Try 3 more attempts" resets the counter; nothing else does.
 13. `verify_gate: build` or `test` runs that command before the commit; a failure blocks the commit and re-enters 3c. The gate runs at most twice per task, and "Accept as-is" after a gate failure moves on instead of re-running it -- a permanently failing gate never loops. A gate whose command resolves to `none` records `failed` with the reason and never enters 3c.
 14. `commit_strategy: none` or absent writes no commit and says so exactly once.
 15. `commit_strategy: per-task` produces one commit per task, skipping any task whose gate verdict is `failed`; `single` produces exactly one commit after the last task, and none at all if any task's gate failed. The plan and `screenshot_dir` are never staged.
 15b. "Skip this task" restores the modified files and deletes the created ones when git is available, and leaves them in place with a stated reason under `NO_GIT` or on files an earlier task also wrote.
-16. Phase 4 prints the status table, lists every accepted deviation with its delta and report path, and ends with the four-button handoff.
-16b. Phase 2b starts exactly one run session for the whole run, hot reloads it after each task's 3a, and tears it down at the end. A project with no resolvable run target starts none and the run continues, and so does a plan whose `capture_preference` is `skip` or `manual`.
-16c. Teardown runs on every exit path -- the last task, a stop, "Stop here", and a cancelled `AskUserQuestion`. A skipped task and a failed gate keep the session and the run moves to the next task. A simulator or dev server the user had open before the run is left running.
-16d. A failed run-session launch spends a session attempt rather than one from the task's 3c budget, and three failures stop session ownership for the rest of the run without stopping the run. Task 1 still enters 3a with a full 3-attempt budget after three failed launches.
-16e. With no session owned, each 3b invocation still verifies -- `/design-verify` rebuilds and relaunches under its own cap.
-16f. A Flutter run session's VM service URI is read from its output and forwarded on every 3b invocation as `--vm-uri`. After a session restart the URI is re-read, and a non-Flutter session forwards none.
+16. Phase 4 prints the status table, the `Fidelity: skipped -- no verifier` line, every accepted gate failure, and ends with the four-button handoff.
 17. `--auto` is stripped before a plan path is resolved, and `/design-build --auto` with several plans on disk takes the most recent and names the count instead of asking.
 18. A full `/design --auto` run reaches no `AskUserQuestion` after `/design` Step 8, all the way to the Phase 4 summary.
 19. The auto handoff prints the `/review`, `/commit`, and `/create-pr` commands as text and invokes none of them.
@@ -469,17 +358,14 @@ Follow all rules in `.claude/rules/skill-rules.md`. Additionally:
 - [ ] No screenshot binary or capture MCP server is named anywhere in this file.
 - [ ] The plan frontmatter fence is not reproduced; only the fields this skill reads are listed, each with a default.
 - [ ] The retry budget is capped at 3 and only the user can reset it.
-- [ ] Exactly one run session per run: started once, hot reloaded per task, torn down on every exit path.
-- [ ] Launch failures draw from the 3c budget and never create a second counter.
 - [ ] The gate runs at most twice per task and never re-runs after "Accept as-is".
-- [ ] Report freshness is checked by `created:`, not by the file existing.
-- [ ] Every empty-table outcome is classified from `comparison_path` and `confidence`.
+- [ ] Phase 4 carries the `Fidelity: skipped -- no verifier` line on every run.
 - [ ] The bounded-retry prompt uses `AskUserQuestion`, not plain text -- and is unreachable in auto mode.
 - [ ] Every `AskUserQuestion` site in this skill has an auto-mode branch ahead of it.
-- [ ] Auto mode changes no measurement, tolerance, gate verdict, or commit rule.
+- [ ] Auto mode changes no gate verdict and no commit rule.
 - [ ] No commit is written when `commit_strategy` is absent.
 - [ ] `--no-commit` overrides the plan for the run and never edits the plan file.
-- [ ] Commits stage task files only; no `git add .`; plan and assets excluded.
+- [ ] Commits stage task files only; no `git add .`; plan and reference assets excluded.
 - [ ] No AI attribution in any commit message.
 - [ ] `when-to-use:` is a single-line double-quoted string.
 - [ ] No `CLAUDE_PLUGIN_ROOT` reference anywhere in this file.
@@ -487,10 +373,9 @@ Follow all rules in `.claude/rules/skill-rules.md`. Additionally:
 - [ ] No `$()`, variable assignment, or `if/else` inside any `!` block.
 
 **Known gotchas:**
-- The retry budget is a cross-file loop: 3c counts attempts here, but each attempt's measurement happens in `/design-verify`. The counter never lives in the report file -- it is this skill's state.
-- Teardown is easy to write only on the happy path. The exit paths that skip it -- a cancelled question, a skipped task, a stop -- are the ones that leave an orphaned simulator or dev server behind.
-- An absent deviation report and a report with zero deviations mean opposite things. `/design-verify` writes a report on every path precisely so the difference is unambiguous.
-- Deviation reports and captures land under `.claude/plans/assets/<slug>/`. If `.claude/` is gitignored they stay local, which is intended -- never stage them.
+- The retry budget is this skill's own state. It counts gate attempts per task and lives nowhere on disk, so a re-run of the same plan starts every task at attempt one.
+- `Fidelity: skipped -- no verifier` is a fixed string, not a computed result. A run that quietly drops it reports a build as if its fidelity had been checked.
+- The plan's per-node measurement specs and reference images are still written and still read at 3a. They are the implementation's source of numbers; nothing measures the result against them.
+- Reference images live under `.claude/plans/assets/<slug>/`. If `.claude/` is gitignored they stay local, which is intended -- never stage them.
 - Undoing a skipped task's changes only removes what that task wrote, and only when git can restore them. A task whose files an earlier task also touched cannot be cleanly skipped; when that happens, say so rather than hand-unpicking interleaved edits.
-- The verification report path is fixed per task, so a failed re-verify is invisible from the filesystem alone. `created:` is the only thing that separates this attempt's report from the last one's.
 - `commit_strategy: single` still has to skip when `NO_GIT`. The accumulate branch is easy to write as if git is always present.

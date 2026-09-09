@@ -1,6 +1,6 @@
 ---
 name: design
-description: "Extract a Figma design into a pixel-exact implementation plan -- reads the selected nodes through the figma-bridge MCP, maps Figma variables onto the project's existing theme tokens, and writes a self-contained plan to .claude/plans/ that /design-build executes without touching Figma again. --auto carries the same run through the build and the fidelity measurement without a further prompt."
+description: "Extract a Figma design into a pixel-exact implementation plan -- reads the selected nodes through the figma-bridge MCP, maps Figma variables onto the project's existing theme tokens, and writes a self-contained plan to .claude/plans/ that /design-build executes without touching Figma again. --auto carries the same run through the build without a further prompt."
 argument-hint: "<node id, or a short description of what to build> [--auto] [--no-commit]"
 when-to-use: "user wants to turn a Figma design into code -- '/design', '/design --auto', 'implement this Figma design', 'build the screen I selected in Figma', 'turn this Figma node into code', 'pixel perfect from Figma', 'extract it and build it without asking me again', 'build it but do not commit anything'"
 ---
@@ -55,8 +55,8 @@ overwrite an existing plan. Those answers are the plan; a run that guessed them 
 the wrong screen faster.
 
 What it removes is Step 10's "what next" question and every stop downstream of it. Step 8
-becomes the last question of the run: the user answers there and comes back to a built and
-measured result rather than to a prompt asking them to type the next command.
+becomes the last question of the run: the user answers there and comes back to a built
+result rather than to a prompt asking them to type the next command.
 
 ## Step 1 -- Bridge Availability
 
@@ -133,7 +133,7 @@ Run these against the resolved `fileKey`:
 2. `get_node` for each target node ID -- full detail. Recurse into children that carry their own visual treatment (text, fills, strokes, effects, distinct auto-layout). Do not recurse into pure spacer nodes.
 3. `get_variable_defs` -- every local variable collection, its modes, and its resolved values. These are the design tokens.
 4. `get_styles` -- local paint/text/effect styles, for nodes that reference a style instead of a variable.
-5. `save_screenshots` for the target nodes into `.claude/plans/assets/<slug>/`, PNG at `scale: 2`, `clip: true`. `<slug>` is a kebab-case name derived from the top-level node name. These files are the visual reference `/design-verify` compares against.
+5. `save_screenshots` for the target nodes into `.claude/plans/assets/<slug>/`, PNG at `scale: 2`, `clip: true`. `<slug>` is a kebab-case name derived from the top-level node name. These files are the plan's visual reference for the node specs below them.
 
    Then export every icon and image leaf node reached in item 2. The bridge infers the
    format from the `outputPath` extension, and passing a conflicting explicit `format`
@@ -337,7 +337,7 @@ answer.
 **Resolve the overwrite decision here too.** Before composing the call, use the Glob tool
 on `.claude/plans/*<slug>-design-plan.md`. If a match exists, summarize what this
 extraction changed against the existing plan -- node count, node IDs added or dropped,
-token map rows that differ -- and carry Question 4 in this same call. Deciding it here is
+token map rows that differ -- and carry Question 3 in this same call. Deciding it here is
 what makes Step 8 the run's last question instead of a promise Step 9 breaks.
 
 **`--no-commit` closes Question 1 before the call is composed.** Record
@@ -359,14 +359,7 @@ Buttons: `["Run the project's build", "Run the project's tests", "No gate"]`
 
 Record as `verify_gate: build` / `test` / `none`.
 
-**Question 3 -- Capture preference.**
-> How should the built UI be captured for fidelity comparison?
-
-Buttons: `["Capture automatically (Recommended)", "I will supply screenshots", "Skip capture -- verify against the spec"]`
-
-Record as `capture_preference: auto` / `manual` / `skip`.
-
-**Question 4 -- Existing plan.** Asked only when the Glob above matched.
+**Question 3 -- Existing plan.** Asked only when the Glob above matched.
 > A design plan for `{slug}` already exists: `{existing path}`.
 > {one line per difference}
 
@@ -375,18 +368,17 @@ Buttons: `["Update the existing plan", "Write a new plan file"]`
 Record as `plan_write: update` / `new`. This one is a routing answer, not plan
 frontmatter -- Step 9 consumes it and it is never written into the plan.
 
-**Question 5 -- Build scope.** Asked only when all four of these hold: Step 3 resolved
+**Question 4 -- Build scope.** Asked only when all four of these hold: Step 3 resolved
 exactly one top-level node, that node has more than one extracted child, `$ARGUMENTS`
 describes nothing, and the Glob above matched no existing plan. Strip the flags and the
 node IDs from `$ARGUMENTS`; what remains is the description. When the user wrote what they
 wanted -- "this card on the settings screen", with or without a screenshot -- they already
 answered this, and asking again is the interruption Step 8 exists to avoid.
 
-**Question 4 and Question 5 never share a call.** `AskUserQuestion` carries four questions
-and Questions 1 through 3 hold three of the slots, so an existing plan and an open scope
-decision cannot both be asked. The existing plan wins: a re-run inherits the scope its
-plan already recorded in the `### Goal` line, and asking again would let one button
-silently rescope a plan the user is updating.
+**Question 3 and Question 4 never share a call.** An existing plan and an open scope
+decision are never both asked, even though four slots are free. The existing plan wins: a
+re-run inherits the scope its plan already recorded in the `### Goal` line, and asking
+again would let one button silently rescope a plan the user is updating.
 
 > {top-level node name} expands to {N} node specs. Build the whole screen, or one
 > component out of it?
@@ -408,23 +400,14 @@ into reference.
 Default it to `all` when the question was not asked. A described selection is a scoped
 selection, and Step 9 scopes it from the description rather than from a button.
 
-The three build preferences are distinct build paths, not shades of one: `skip` never attempts a capture
-at all and so never triggers a build-and-launch cycle, `manual` waits for a supplied
-path, `auto` attempts capture per task.
-
 **In auto mode this call is the single consent point for the whole run (R6).** Answering it
-authorizes the plan write, every task's implementation, the fidelity
-measurement, and the bounded fix loop. Say what is being approved in the preamble, so the
-consent is informed rather than inferred:
+authorizes the plan write, every task's implementation, and the bounded fix loop. Say what
+is being approved in the preamble, so the consent is informed rather than inferred:
 
 ```
-> Answering these starts the build -- I write the plan, implement every task, and measure
-> each one against the design, without stopping to ask again.
+> Answering these starts the build -- I write the plan and implement every task, without
+> stopping to ask again.
 ```
-
-`capture_preference: manual` stays a legal answer in auto mode and blocks nothing. Inside a
-build loop `/design-verify` reads a manual screenshot from the conventional path if one is
-there and falls through to a spec read if it is not; it never asks.
 
 ## Step 9 -- Write the Plan
 
@@ -439,16 +422,16 @@ Write to `.claude/plans/YYYY-MM-DD-<slug>-design-plan.md` (use `date '+%Y-%m-%d'
   If the path exists anyway, take the suffixed name -- never overwrite a plan no one
   answered for.
 
-Never overwrite an existing plan without Step 8's answer to Question 4.
+Never overwrite an existing plan without Step 8's answer to Question 3.
 
 **Language rule:** the plan is always written in English, regardless of the conversation language.
 
 **Self-containment rule:** `/design-build` runs with Figma disconnected. Every number, token, anchor, and reconciliation note it needs must be inside this file or inside `screenshot_dir`. A plan that says "see the Figma node" is broken.
 
-**The fence below is the single declaration point for the design-plan schema.** Consumer
-skills (`/design-build`, `/design-verify`) list only the fields they read and the default
-they apply when a field is absent. No other file reproduces this fence. Every contract in
-this repo that a consumer restated has drifted; this one is declared once.
+**The fence below is the single declaration point for the design-plan schema.** Its one
+consumer, `/design-build`, lists only the fields it reads and the default it applies when
+a field is absent. No other file reproduces this fence. Every contract in this repo that a
+consumer restated has drifted; this one is declared once.
 
 Frontmatter:
 
@@ -461,19 +444,25 @@ figma_file_name: <fileName>
 figma_node_ids: ["4029:12345", "4029:12400"]
 figma_frame_size: <W>x<H>
 screenshot_dir: .claude/plans/assets/<slug>/
-screenshot_scale: 2
 stack: <language>, <framework> <version>
 commit_strategy: none | per-task | single
 verify_gate: build | test | none
-capture_preference: auto | manual | skip
 created: YYYY-MM-DD
 ---
 ```
 
-`figma_frame_size` is the top-level frame's logical width and height in Figma px --
-the reference dimension every later normalization resolves against.
-`screenshot_scale` is the `scale` passed to `save_screenshots` for the reference PNGs.
-The last three come from Step 8.
+`screenshot_dir` is where Step 4 wrote the reference PNGs and the exported assets.
+`commit_strategy` and `verify_gate` come from Step 8.
+
+`figma_frame_size` is the enclosing screen frame's logical width and height in Figma px --
+the reference dimension a measurement of the running app resolves against. No skill in
+Quiver reads it today; it is written because nothing else in the plan carries it. The node
+specs record the parent chain by name, not by box, so when the selection is a component
+rather than a whole screen the screen's own size appears in this field and nowhere else.
+Dropping it would make that case unmeasurable by any later tool. The reference PNGs' scale
+is not recorded for the opposite reason: they are clipped to their node, so it divides out
+of the PNG's own pixel width against the node's `Box:`, and a derived value cannot go
+stale the way a recorded one can.
 
 Body sections, in order:
 
@@ -529,9 +518,9 @@ Three of those lines are new and each closes a specific failure:
   Step 6 item 7: the key name when the project has a translation layer, the inline
   literal when it does not. Without this line the build invents copy.
 - **`Route:`** -- where the node is reachable in the running app, from Step 6 item 10.
-  `/design-verify` uses it to get the app onto the right screen before capturing. A node
-  with no reachable route (a pure leaf component) writes `Route: not independently
-  reachable` rather than omitting the line.
+  `/design-build` builds the node so that route reaches it, and it is what tells anyone
+  opening the app where to look. A node with no reachable route (a pure leaf component)
+  writes `Route: not independently reachable` rather than omitting the line.
 
 A node the build must not implement carries one more line:
 
@@ -541,9 +530,9 @@ A node the build must not implement carries one more line:
 
 It exists because a page selection extracts every child, and a child nobody asked for is
 still context worth keeping: it carries the anchors and spacing its siblings are measured
-against. Without this line, `/design-build` implements it and `/design-verify` measures
-it, and the run reports real deviations on parts of the screen the user never asked to
-touch. The line is what makes "extracted" and "in scope" two different things.
+against. Without this line, `/design-build` implements it, and the run rewrites parts of the
+screen the user never asked to touch. The line is what makes "extracted" and "in scope"
+two different things.
 
 Omit properties the node does not have. Never write a placeholder.
 
@@ -580,8 +569,10 @@ One criterion per task, plus one fidelity criterion per top-level node stated in
 
 1. Read the plan file back. Confirm it exists and that the Node Specs section carries real numbers.
 2. Confirm no raw `{...}` placeholder text survives anywhere in the file.
-3. Confirm all five build-contract fields are present in frontmatter: `figma_frame_size`,
-   `screenshot_scale`, `commit_strategy`, `verify_gate`, `capture_preference`.
+3. Confirm all four contract fields are present in frontmatter: `screenshot_dir`,
+   `commit_strategy`, `verify_gate`, and `figma_frame_size`. The first three are what
+   `/design-build` reads; the fourth has no reader in this repo and is checked here
+   because that is the only thing keeping it from silently going missing.
 4. Confirm every path in the `### Assets` table exists on disk.
 5. Print: `> Design plan saved: .claude/plans/{filename} ({N} nodes, {M} tasks).`
 
@@ -622,17 +613,16 @@ purpose -- a plan edited between the write and the build would otherwise silentl
 commits.
 
 Do not ask, do not print a command for the user to run, and do not wait for a reply. Step 8
-collected the consent that covers everything from here to the fidelity summary.
+collected the consent that covers everything from here to the build summary.
 
 Otherwise call `AskUserQuestion`:
 
 > Plan saved. What next?
 
-Buttons: `["Build it now -- run /design-build", "Verify an existing build -- run /design-verify", "Review the plan first", "Stop here"]`
+Buttons: `["Build it now -- run /design-build", "Review the plan first", "Stop here"]`
 
 - **Build it now:** invoke the `design-build` skill with the saved plan path.
   Pass no `--auto`: this button is consent for one step, not for the rest of the run.
-- **Verify an existing build:** invoke the `design-verify` skill with the saved plan path.
 - **Review the plan first:** print the plan body and stop.
 - **Stop here:** stop.
 
@@ -683,18 +673,19 @@ Follow all rules in `.claude/rules/skill-rules.md`. Additionally:
 11. Step 6 resolves `codegraph_available` from a Glob on `.codegraph/*` and dispatches exactly one `quiver:code-navigator` agent, with literals in the prompt, and waits without polling.
 12. Step 7 auto-maps every value-matched variable and asks exactly one approval question regardless of how many rows are unmapped.
 13. Step 7's table carries a `Mode` column with one row per mode for any multi-mode variable, and alias values are resolved before matching.
-14. Step 8 asks commit strategy, verification gate, and capture preference in one grouped `AskUserQuestion`.
-14b. Step 8 asks the scope question only when Step 3 resolved exactly one top-level node with more than one extracted child, `$ARGUMENTS` carries no description beyond flags and node IDs, and no existing plan matched the slug. A described selection reaches no scope question, and Question 4 and Question 5 never appear in the same call -- the call carries four questions at most.
+14. Step 8 asks commit strategy and verification gate in one grouped `AskUserQuestion`.
+14b. Step 8 asks the scope question only when Step 3 resolved exactly one top-level node with more than one extracted child, `$ARGUMENTS` carries no description beyond flags and node IDs, and no existing plan matched the slug. A described selection reaches no scope question, and Question 3 and Question 4 never appear in the same call.
 14c. Answering "Only {child}" writes `Scope: reference only -- not built by this plan` on every node spec outside the chosen child's subtree, gives those nodes no task, and names the scope in the `### Goal` section. The chosen child and its own descendants stay in scope. Answering "The whole {node}" writes no `Scope:` line anywhere.
 15. Step 8 finds an existing plan for the same slug, summarizes the differences, and carries the overwrite question in that same call; Step 9 writes on that answer without asking again.
-16. Step 9 writes the plan with `design_source`, `figma_file_key`, `figma_node_ids`, `screenshot_dir`, `figma_frame_size`, `screenshot_scale`, `commit_strategy`, `verify_gate`, and `capture_preference` in frontmatter.
+16. Step 9 writes the plan with `design_source`, `figma_file_key`, `figma_node_ids`, `figma_frame_size`, `screenshot_dir`, `commit_strategy`, and `verify_gate` in frontmatter.
+16b. Extracting a component that is not the whole screen still records the enclosing screen frame in `figma_frame_size`, not the component's own box.
 17. Every applicable node spec carries `Fit:`, `Content:`, and `Route:` lines.
 18. The plan carries an `### Assets` section naming every exported file.
-19. Step 10 reads the plan back, verifies the assets exist, dispatches `quiver:plan-reviewer` exactly once, applies its findings, and offers the handoff via `AskUserQuestion`.
+19. Step 10 reads the plan back, verifies the assets exist, dispatches `quiver:plan-reviewer` exactly once, applies its findings, and offers the three-button handoff via `AskUserQuestion`.
 20. `/design --auto` still asks every plan-time question -- file, nodes, unmapped tokens, build preferences, overwrite -- and the `--auto` token never reaches Step 3's node-ID resolution.
 21. `/design --auto` skips Step 10's handoff question entirely, prints `> Building.`, and invokes `design-build` with the plan path and `--auto` in the same run.
 22. Picking "Build it now" in the interactive handoff invokes `design-build` without `--auto`, so the build keeps its own prompts.
-23. `/design --no-commit` asks Step 8's Questions 2 and 3 only, writes `commit_strategy: none`, and says so once.
+23. `/design --no-commit` asks Step 8's Question 2 only, writes `commit_strategy: none`, and says so once.
 24. `/design --auto --no-commit` forwards both flags to `design-build`; `/design --auto` forwards only `--auto`.
 25. `--no-commit` works without `--auto`, and `--auto` works without `--no-commit`.
 
@@ -705,7 +696,7 @@ Follow all rules in `.claude/rules/skill-rules.md`. Additionally:
 - [ ] The saved plan contains no raw `{...}` placeholder text.
 - [ ] Every node spec block carries literal numbers, not references to Figma.
 - [ ] Every path in the `### Assets` table exists on disk.
-- [ ] All five build-contract frontmatter fields are present: `figma_frame_size`, `screenshot_scale`, `commit_strategy`, `verify_gate`, `capture_preference`.
+- [ ] All four contract frontmatter fields are present: `screenshot_dir`, `commit_strategy`, `verify_gate`, `figma_frame_size`.
 - [ ] Thirty unmapped variables produce exactly one approval question.
 - [ ] No node spec writes a `fill` axis as a literal width.
 - [ ] The frontmatter fence appears in this file and in no other skill.
