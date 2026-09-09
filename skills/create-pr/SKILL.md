@@ -142,16 +142,16 @@ If `$ARGUMENTS` contains "draft", skip the `AskUserQuestion` step. Show the gene
 
 ### Default (no flag)
 
-**Print the preview to chat first, then ask.** Do not paste the body into the `AskUserQuestion` question field. That field is rendered as a single truncated line by some Claude Code surfaces, so a multi-line body is cut off or dropped entirely and the user is asked to approve something they cannot read.
+Two steps, both mandatory: print the preview, then ask. Do not paste the body into the `AskUserQuestion` question field -- that field is rendered as a single truncated line by some Claude Code surfaces, so a multi-line body is cut off or dropped entirely and the user is asked to approve something they cannot read.
 
-Print, as normal chat output:
+**Step 4a -- print the preview** as normal chat output:
 
 > **PR Title:** {title}
 > **Base:** `{base_branch}` <- `{current_branch}`
 
 Then the body verbatim inside a fenced ```markdown block, so the user sees exactly what `gh pr create` will receive.
 
-Then call `AskUserQuestion`:
+**Step 4b -- ask, and wait for the answer:**
 
 - **Question:** `"Create this PR?"` -- one short line. No newlines, no body text, no ANSI escape codes.
 - **Header:** "Pull Request"
@@ -160,6 +160,8 @@ Then call `AskUserQuestion`:
   2. **Create as Draft** -- "Create as draft pull request"
   3. **Edit** -- "Revise the title or description"
   4. **Cancel** -- "Abort without creating PR"
+
+Printing the preview is not approval. It is only the readable copy of what the prompt is about, and it exists because the prompt cannot display it. Never run `gh pr create` without an answer from this `AskUserQuestion`. The user asking for a PR in their message is not the answer either -- that is what put the skill on this step. `--draft` is the only path that skips the prompt.
 
 ---
 
@@ -235,10 +237,12 @@ Never retry automatically.
 - [ ] Body uses HEREDOC formatting in the actual `gh pr create` invocation.
 - [ ] Title and body are in English even when the conversation is in another language, and the body keeps its `## Summary` / section structure instead of one prose paragraph.
 - [ ] The full body is visible in the chat stream before the prompt appears; the `AskUserQuestion` question is a single short line containing no body text.
+- [ ] `gh pr create` runs only after the prompt is answered -- printing the preview and creating the PR in one uninterrupted turn is a failure, even when the user's message asked for a PR.
 - [ ] No AI-attribution lines appear in the title or body.
 - [ ] `--base <branch>` overrides every other base-branch source.
 
 **Known gotchas:**
+- Splitting the preview out of the question field removes what used to force the prompt: when the body lived inside the question, the skill could not show it without asking. With the two separated, the printed preview looks like a confirmation on its own and the prompt gets skipped. Step 4b is the guard, and it is why the skip is called out there in its own paragraph.
 - The `AskUserQuestion` question field is rendered single-line and truncated on some surfaces, and ANSI escape codes print literally (`\x1b[2m` shows up as `@[2m`). Keep the question to one short plain-text line and put the preview in the chat stream.
 - `gh pr create` exits non-zero when a PR already exists; the skill must surface the error and suggest `gh pr list --head <branch>` rather than retrying.
 - Bitbucket and Azure DevOps are not supported by `gh`; the user must run a platform-specific tool manually for those.
