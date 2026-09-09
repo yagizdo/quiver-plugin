@@ -94,7 +94,7 @@ Group agents by role. Current categories:
 
 ## Checklist — When Updating README
 
-- [ ] Component inventory counts match actual files (`ls -d skills/*/ | wc -l`, agent count from `agents/**/*.md`)
+- [ ] Component inventory counts match actual files (`ls -d skills/*/ | wc -l`, agent count from `agents/**/*.md`) -- enforced by `bash tests/inventory/test-component-count-contract.sh`, which also pins the two `.opencode/README.md` lists and the hooks table
 - [ ] All slash-invocable skills (skills with frontmatter that are not reference-only) are listed under `## What Do I Use?`
 - [ ] Internal reference skills (code-navigation, orchestrate-agents, verification, tdd, using-quiver, visual-companion) are excluded from user-facing docs
 - [ ] All hooks in `hooks/hooks.json` are listed

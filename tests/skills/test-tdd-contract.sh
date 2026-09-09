@@ -236,9 +236,11 @@ echo "=== 7. The reference skill is registered as exempt ==="
 
 assert_in "$README_RULES" 'verification, tdd, using-quiver' "readme-structure.md names tdd in the exclusion list"
 
-# The surrounding spaces make tdd a whole word, so a future exemption list entry that merely
-# contains the three letters does not satisfy this.
-if grep -q '^EXEMPT=.* tdd ' "$WTU"; then
+# Whole-word match inside the quoted list, so a future exemption entry that merely contains
+# the three letters does not satisfy this. The alternation is what makes position irrelevant:
+# an earlier version required a space on both sides, which silently failed the day tdd became
+# the last name in the list.
+if grep -Eq '^EXEMPT="([^"]* )?tdd( [^"]*)?"' "$WTU"; then
   pass "test-when-to-use-contract.sh exempts tdd"
 else
   fail "test-when-to-use-contract.sh does not exempt tdd -- the routing test would demand a when-to-use field on a skill that must not carry one"

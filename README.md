@@ -88,7 +88,7 @@ The script symlinks Quiver into every runtime it detects, and prints the install
 | Component | Count |
 |-----------|-------|
 | Hooks | 3 |
-| Skills | 26 |
+| Skills | 24 |
 | Agents | 20 |
 
 ## What Do I Use?
@@ -193,8 +193,8 @@ Re-review detection: if you run `/review` again on the same branch after fixing 
 |-----------|---------|--------------|
 | Ending a work session | `/handover` | Saves an 8-section summary so the next session resumes with full context |
 | Starting a new session | `/load-handover` | Loads the most recent handover and highlights top priorities |
-| Last handover is stale or wrong | `/delete-last-handover` | Shows and deletes the most recent handover file with confirmation |
-| Want a clean slate | `/delete-all-handovers` | Lists all handover files, confirms, then deletes everything |
+| Last handover is stale or wrong | `/handover --clear` | Shows and deletes the most recent handover file with confirmation |
+| Want a clean slate | `/handover --clear-all` | Lists all handover files, confirms, then deletes everything |
 
 ### Tooling & Maintenance
 
