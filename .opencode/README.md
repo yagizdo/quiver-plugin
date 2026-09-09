@@ -78,10 +78,8 @@ The full skill list lives in the `skill` tool. Run `use skill tool to list skill
 | `hypothesis-debugging` | Systematic bug investigation |
 | `commit` | Generate a Conventional Commits message |
 | `create-pr` | Open a GitHub pull request |
-| `handover` | Save session context |
+| `handover` | Save session context; `--clear` removes the most recent handover, `--clear-all` resets session history |
 | `load-handover` | Resume from the latest handover |
-| `delete-last-handover` | Remove the most recent handover |
-| `delete-all-handovers` | Reset session history |
 | `create-agent` | Scaffold a new agent |
 | `create-agents-md` | Generate an AGENTS.md |
 | `repair-skill` | Fix a broken skill |

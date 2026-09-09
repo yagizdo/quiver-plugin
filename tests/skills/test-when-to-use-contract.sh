@@ -11,16 +11,22 @@
 # dropped from the block entirely). Neither raises an error, neither is visible in a
 # session, and the only symptom is a skill that stops auto-firing.
 #
-# The reverse direction matters more. R10 exempts six skills, and two of them --
-# delete-all-handovers and delete-last-handover -- delete user data. The hook tells the
-# model to invoke a matching skill *silently, before any other response*. Giving either
-# of those a `when-to-use:` string wires a destructive skill into that path. The
-# exemption is what keeps them out of it, so this test asserts the exempt skills carry
+# The reverse direction matters more. The hook tells the model to invoke a matching skill
+# *silently, before any other response*. R10 exempts four internal reference skills, which
+# are read by other skills and never invoked at all; giving one a `when-to-use:` string
+# wires a non-invocable skill into that path. So this test asserts the exempt skills carry
 # no `when-to-use:` rather than treating the field as merely optional for them.
 #
-# A skill is kept out of the routing block for one of two reasons, and they are not the
-# same reason. An R10 exemption means the skill has no `when-to-use:` at all. A skill with
-# `disable-model-invocation: true` still declares one -- it is slash-invocable and R10
+# Destructive operations are not exempt and are not kept out this way. They live inside a
+# skill carrying `disable-model-invocation: true` behind an AskUserQuestion confirmation --
+# `/handover --clear` and `/handover --clear-all` are the case -- and that skill keeps its
+# `when-to-use:` under R10's format rules. What keeps the destructive path off the silent
+# auto-invocation route is the hook dropping model-disabled skills from the block, which is
+# the assertion in Section 4's disabled branch.
+#
+# A skill is therefore kept out of the routing block for one of two reasons, and they are
+# not the same reason. An R10 exemption means the skill has no `when-to-use:` at all. A skill
+# with `disable-model-invocation: true` still declares one -- it is slash-invocable and R10
 # still governs the string's shape -- but the model cannot invoke it, so a routing entry
 # for it instructs the model to do something impossible. Section 4 therefore asserts
 # absence for both sets while Section 3 keeps holding the disabled ones to R10's format.
@@ -40,7 +46,8 @@ SKILLS_DIR="$REPO_ROOT/skills"
 
 # R10's exemptions, restated. Section 1 binds this list to the rule text so a name
 # dropped from the rule cannot stay silently skipped here.
-EXEMPT="code-navigation orchestrate-agents verification tdd delete-all-handovers delete-last-handover"
+EXEMPT="code-navigation orchestrate-agents verification tdd"
+EXEMPT_COUNT=4
 
 EXIT=0
 pass() { echo "  PASS: $1"; }
@@ -100,12 +107,21 @@ if [ -n "$R10_LINE" ]; then
     *) fail "R10 no longer mentions 'when-to-use:' -- the rule was renumbered or repurposed and this test is now pointed at the wrong rule" ;;
   esac
 
+  NAMED=0
   for name in $EXEMPT; do
     case "$R10_LINE" in
-      *"$name"*) pass "R10 still exempts $name" ;;
-      *) fail "R10 no longer names $name as an exception, but this test still skips it -- either add the field to skills/$name/ or drop it from the EXEMPT list here" ;;
+      *"$name"*) pass "R10 still exempts $name"; NAMED=$((NAMED + 1)) ;;
+      *) fail "R10 no longer names $name as an exception, but this test still skips it -- either restore the name in R10, or give skills/$name/ a when-to-use: and drop the name from EXEMPT (lowering EXEMPT_COUNT to match)" ;;
     esac
   done
+
+  # The loop above only checks the names EXEMPT still lists. Dropping a name from EXEMPT
+  # removes its assertion instead of failing it, so pin the count too.
+  if [ "$NAMED" -eq "$EXEMPT_COUNT" ]; then
+    pass "all $EXEMPT_COUNT R10 exemptions are named in the rule text"
+  else
+    fail "R10 names $NAMED of the $EXEMPT_COUNT expected exemptions -- EXEMPT and EXEMPT_COUNT disagree with the rule, so update all three together"
+  fi
 fi
 
 echo ""
