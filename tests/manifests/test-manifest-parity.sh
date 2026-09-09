@@ -9,11 +9,6 @@
 #   2. The Cursor agents array lists exactly the Claude agents array.
 #   3. The README version badge matches .claude-plugin/plugin.json.
 #
-# gemini-extension.json is deliberately out of scope. Google retired Gemini CLI on
-# 2026-06-18 and the extension only installs under a paid Code Assist license, so
-# its version is a legacy artifact rather than a shipped install path. Adding it
-# here would assert a number nobody can act on.
-#
 # Parsing is grep and sed, not jq -- jq is not a Quiver dependency, and a test that
 # needs a tool the user must install first has the problem it exists to catch.
 #
