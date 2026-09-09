@@ -59,7 +59,7 @@ Two ways to invoke them:
 
 **Plain language.** Describe what you want: "debug this login bug", "brainstorm a todo app", "review my changes". The bootstrap dispatches the matching skill the same way.
 
-The full skill list lives in the `skill` tool. Run `use skill tool to list skills` to see all 21 user-facing Quiver skills.
+The full skill list lives in the `skill` tool. Run `use skill tool to list skills` to see all 18 user-facing Quiver skills.
 
 #### Available skills
 

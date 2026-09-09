@@ -22,7 +22,8 @@
 # `/handover --clear` and `/handover --clear-all` are the case -- and that skill keeps its
 # `when-to-use:` under R10's format rules. What keeps the destructive path off the silent
 # auto-invocation route is the hook dropping model-disabled skills from the block, which is
-# the assertion in Section 4's disabled branch.
+# the assertion in Section 4's disabled branch. That branch is gated on the field it filters
+# on and so cannot assert its presence; the flag is pinned by name after the loop instead.
 #
 # A skill is therefore kept out of the routing block for one of two reasons, and they are
 # not the same reason. An R10 exemption means the skill has no `when-to-use:` at all. A skill
@@ -241,6 +242,15 @@ if [ "$DISABLED_SEEN" -eq 0 ]; then
   fail "no skill outside the EXEMPT list carries disable-model-invocation: true -- the filter assertion above tested nothing, so either a skill lost the field or this branch is dead"
 else
   pass "checked $DISABLED_SEEN disable-model-invocation skill(s) for absence"
+fi
+
+# /handover carries delete flags (--clear, --clear-all). It is not R10-exempt and declares a
+# when-to-use, so `disable-model-invocation: true` is the only thing keeping it out of the
+# block. The branch above cannot assert the field's presence -- it is gated on it.
+if is_disabled "$SKILLS_DIR/handover/SKILL.md"; then
+  pass "handover still sets disable-model-invocation: true, keeping --clear/--clear-all out of the routing block"
+else
+  fail "skills/handover/SKILL.md lost disable-model-invocation: true -- it declares a when-to-use, so the routing hook now tells the model to invoke a skill carrying --clear and --clear-all silently before responding"
 fi
 
 echo ""

@@ -297,7 +297,7 @@ If no matching lines were found, skip this message entirely.
 For **clear-last**:
 
 > **Deleted:** `{filename}`
-> **Remaining:** {count} handover file(s)
+> **Remaining:** {count - 1} handover file(s)
 
 For **clear-all**:
 
@@ -305,7 +305,7 @@ For **clear-all**:
 > **Files deleted:** {comma-separated filenames}
 > **Status:** Clean slate.
 
-Fill every `{...}` from the Step C1 inventory and the Step C5 re-list. No raw `{placeholder}` may survive into the printed output.
+Fill every `{...}` from the Step C1 inventory — Step C5's re-list verifies the delete, it does not supply these values. No raw `{placeholder}` may survive into the printed output.
 
 ### Clear Mode Anti-Patterns
 
