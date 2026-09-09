@@ -71,8 +71,7 @@ The full skill list lives in the `skill` tool. Run `use skill tool to list skill
 | `work` | Execute a plan task-by-task |
 | `ship` | Take a project from description to a working, verified app |
 | `design` | Turn a Figma selection into a pixel-exact implementation plan |
-| `design-build` | Build a design plan and fix the measured deviations |
-| `design-verify` | Measure built UI against its design measurement spec |
+| `design-build` | Build a design plan, gating each task on the project's build or tests |
 | `review` | Dispatch review agents |
 | `senior-review` | Standalone senior developer review |
 | `report-check` | Audit a review report for noise and false positives |
