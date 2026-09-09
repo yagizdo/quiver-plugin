@@ -18,7 +18,14 @@
 # exemption is what keeps them out of it, so this test asserts the exempt skills carry
 # no `when-to-use:` rather than treating the field as merely optional for them.
 #
-# Section 3 runs the real hook instead of re-deriving its parser here. A test that
+# A skill is kept out of the routing block for one of two reasons, and they are not the
+# same reason. An R10 exemption means the skill has no `when-to-use:` at all. A skill with
+# `disable-model-invocation: true` still declares one -- it is slash-invocable and R10
+# still governs the string's shape -- but the model cannot invoke it, so a routing entry
+# for it instructs the model to do something impossible. Section 4 therefore asserts
+# absence for both sets while Section 3 keeps holding the disabled ones to R10's format.
+#
+# Section 4 runs the real hook instead of re-deriving its parser here. A test that
 # re-implements the consumer passes when the copy is right and the consumer is wrong,
 # which is the case it exists to catch.
 #
@@ -50,6 +57,11 @@ is_exempt() {
 # reads, so a `when-to-use:` line in the body is invisible to both.
 frontmatter() {
   awk 'BEGIN{c=0} /^---/{c++; if (c==2) exit; next} c==1 {print}' "$1"
+}
+
+# Frontmatter-scoped, same window the hook reads. Takes a skill file path, not a name.
+is_disabled() {
+  frontmatter "$1" | grep -Eq '^disable-model-invocation:[[:space:]]*true[[:space:]]*$'
 }
 
 echo ""
@@ -164,6 +176,7 @@ fi
 echo ""
 echo "=== 4. The routing hook emits what the frontmatter promises ==="
 ROUTING="$(bash "$HOOK" 2>/dev/null)"
+DISABLED_SEEN=0
 
 if printf '%s\n' "$ROUTING" | grep -Fq '<quiver-auto-dispatch>'; then
   pass "hook emits a routing block"
@@ -190,6 +203,13 @@ for skill_file in "$SKILLS_DIR"/*/SKILL.md; do
     else
       fail "/$NAME is exempt but appears in the routing block -- it is now wired into silent auto-invocation"
     fi
+  elif is_disabled "$skill_file"; then
+    DISABLED_SEEN=$((DISABLED_SEEN + 1))
+    if [ "$PRESENT" -eq 0 ]; then
+      pass "/$NAME sets disable-model-invocation and is absent from the routing block"
+    else
+      fail "/$NAME sets disable-model-invocation: true but appears in the routing block -- the block tells the model to invoke a skill the model is not allowed to invoke"
+    fi
   else
     if [ "$PRESENT" -eq 1 ]; then
       pass "/$NAME has a non-empty routing entry"
@@ -198,6 +218,14 @@ for skill_file in "$SKILLS_DIR"/*/SKILL.md; do
     fi
   fi
 done
+
+# Without this the disabled branch is vacuous: drop the filter from the hook AND the
+# field from every skill and the loop above still reports nothing but passes.
+if [ "$DISABLED_SEEN" -eq 0 ]; then
+  fail "no skill outside the EXEMPT list carries disable-model-invocation: true -- the filter assertion above tested nothing, so either a skill lost the field or this branch is dead"
+else
+  pass "checked $DISABLED_SEEN disable-model-invocation skill(s) for absence"
+fi
 
 echo ""
 echo "================================"

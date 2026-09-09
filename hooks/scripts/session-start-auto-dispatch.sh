@@ -9,6 +9,11 @@ main() {
     for skill_file in "${PLUGIN_ROOT}"/skills/*/SKILL.md; do
         [ -f "$skill_file" ] || continue
 
+        # Skills with disable-model-invocation: true cannot be invoked by the model, so a
+        # routing entry for one tells it to do something impossible. Skip them.
+        disabled=$(awk 'BEGIN{c=0} /^---/{c++;next} c==1 && /^disable-model-invocation:[[:space:]]*true[[:space:]]*$/{print "yes"; exit}' "$skill_file") || true
+        case "$disabled" in yes) continue ;; esac
+
         name=$(awk 'BEGIN{c=0} /^---/{c++;next} c==1 && /^name:/{gsub(/^name:[[:space:]]*/,""); print; exit}' "$skill_file") || true
         when_to_use=$(awk 'BEGIN{c=0} /^---/{c++;next} c==1 && /^when-to-use:/{gsub(/^when-to-use:[[:space:]]*/,""); print; exit}' "$skill_file" | tr -d '"<>') || true
 

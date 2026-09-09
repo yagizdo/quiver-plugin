@@ -262,7 +262,7 @@ If Phase 1 identified this as a review-fix plan and the review report was succes
    Review-Fix Cycle Status: Iteration {review_iteration} | Findings {addressed}/{total_in_scope} | Criteria {met}/{total_criteria} | COMPLETE
    ```
 
-<!-- SYNC: This verification parses the report format defined in skills/review/SKILL.md:367 (Synthesized report structure section). If the report structure changes, update the parsing logic here. New sections (What's Working Well, Recommended Fix Order, Senior Assessment) are additive and do not affect this parsing. -->
+<!-- SYNC: This verification parses the report format defined in skills/review/SKILL.md, section `### Synthesized report structure`. If the report structure changes, update the parsing logic here. New sections (What's Working Well, Recommended Fix Order, Senior Assessment) are additive and do not affect this parsing. -->
 
 #### 4d -- Optional: Agent-assisted review
 

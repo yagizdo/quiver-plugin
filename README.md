@@ -2,7 +2,7 @@
 
 [![Version](https://img.shields.io/badge/version-1.22.0-blue)](https://github.com/yagizdo/quiver/releases)
 
-Quiver is a development lifecycle plugin for AI coding CLIs. Purpose-built skills for brainstorming, planning, execution, debugging, code review, and session handover, plus specialized agents for review and debugging.
+Quiver is a development lifecycle plugin for AI coding CLIs. Purpose-built skills for brainstorming, planning, execution, debugging, code review, and session handover, plus specialized agents for review and debugging. Every step leaves evidence on disk (a spec, a plan, a ledger, a report, a handover), and nothing is called done without it.
 
 ## Contents
 
@@ -364,21 +364,6 @@ Every CLI runs the same skills and the same agents, and `/review` fans out to 5 
 - Installing from an earlier release put a git-backed `quiver` entry in the `plugin` array of your `opencode.json`. That entry no longer resolves: delete it, then run `./install.sh`.
 - The plugin registers the skills directory and the context7 MCP server itself, so you do not need an `mcp` or `skills` entry of your own.
 - Skills do not appear in the `/` autocomplete menu, because OpenCode's TUI filters out anything with `source: "skill"`. Typing `/brainstorm` still runs it.
-
-### Gemini CLI (legacy)
-
-Google retired Gemini CLI on 18 June 2026, with no grace period for free, AI Pro, and Ultra personal accounts. Under a Gemini Code Assist Standard or Enterprise license the extension still installs and runs:
-
-```text
-gemini extensions install quiver
-```
-
-Antigravity CLI is Google's replacement. Quiver has not been tested there yet.
-
-- `ask_user` is native: interactive prompts render with full fidelity.
-- The handover auto-save hook maps to Gemini CLI's `PreCompress` event, which fires only before history compression (like Claude Code's PreCompact) -- no cooldown guard needed.
-- Agent dispatch reads agent persona prompts from `agents/` and executes them inline.
-- The hook script uses `claude -p` for transcript summarization. If the `claude` CLI is not installed, the auto-save hook will silently skip (manual `/handover` still works).
 
 ## Uninstall
 
