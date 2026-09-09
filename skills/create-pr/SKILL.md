@@ -128,6 +128,10 @@ The body depth should scale with the PR size:
 
 Generate the body from the full diff content, commit history, and diff stats. Write for a reviewer -- explain the *why* and *how*, not just the *what*.
 
+**Language rule:** the title and body are always written in English, regardless of the conversation language. Only use another language if the user explicitly asks for it in this invocation. A PR is a repository artifact read by people who were not in this conversation.
+
+**Structure rule:** the body follows the template above -- `## Summary` first, then the size-appropriate sections. Do not collapse it into one prose paragraph. If a section has nothing to say, drop the section rather than padding it.
+
 ---
 
 ## Step 4 -- Present & Execute
@@ -138,18 +142,26 @@ If `$ARGUMENTS` contains "draft", skip the `AskUserQuestion` step. Show the gene
 
 ### Default (no flag)
 
-Use the `AskUserQuestion` tool:
+Two steps, both mandatory: print the preview, then ask. Do not paste the body into the `AskUserQuestion` question field -- that field is rendered as a single truncated line by some Claude Code surfaces, so a multi-line body is cut off or dropped entirely and the user is asked to approve something they cannot read.
 
-- **Question:** Build the question string using this template (replace placeholders):
+**Step 4a -- print the preview** as normal chat output:
 
-  `"\x1b[2mPR Title:\x1b[0m\n{title}\n\n\x1b[2mPR Body:\x1b[0m\n{body}\n\nProceed?"`
+> **PR Title:** {title}
+> **Base:** `{base_branch}` <- `{current_branch}`
 
+Then the body verbatim inside a fenced ```markdown block, so the user sees exactly what `gh pr create` will receive.
+
+**Step 4b -- ask, and wait for the answer:**
+
+- **Question:** `"Create this PR?"` -- one short line. No newlines, no body text, no ANSI escape codes.
 - **Header:** "Pull Request"
 - **Options:**
   1. **Create PR** -- "Create pull request"
   2. **Create as Draft** -- "Create as draft pull request"
   3. **Edit** -- "Revise the title or description"
   4. **Cancel** -- "Abort without creating PR"
+
+Printing the preview is not approval. It is only the readable copy of what the prompt is about, and it exists because the prompt cannot display it. Never run `gh pr create` without an answer from this `AskUserQuestion`. The user asking for a PR in their message is not the answer either -- that is what put the skill on this step. `--draft` is the only path that skips the prompt.
 
 ---
 
@@ -215,7 +227,7 @@ Never retry automatically.
 1. Skill runs the six git shell blocks and stops with a clear message if any of: not a git repo, no remote, dirty working tree.
 2. Skill resolves the base branch via the priority order (`--base` flag > `origin/HEAD` > `main` > `master` > `develop` > prompt).
 3. Skill pushes the branch (`git push` with upstream, otherwise `git push -u origin <branch>`).
-4. Skill builds a title (≤72 chars, imperative mood) and a body whose depth scales with PR size; presents both via `AskUserQuestion` with `Create PR / Create as Draft / Edit / Cancel`.
+4. Skill builds a title (≤72 chars, imperative mood) and a body whose depth scales with PR size, prints both to chat (body in a fenced block), then asks via `AskUserQuestion` with a one-line question and `Create PR / Create as Draft / Edit / Cancel`.
 5. With `--draft`, skill skips the prompt and runs `gh pr create --draft …`.
 6. Final output shows the PR URL parsed from `gh` stdout.
 
@@ -223,9 +235,14 @@ Never retry automatically.
 - [ ] Slash menu shows `/create-pr`.
 - [ ] Skill stops cleanly with a single explanatory line on `NO_GIT`, `NO_REMOTE`, dirty tree, base-branch ambiguity, or zero commits ahead.
 - [ ] Body uses HEREDOC formatting in the actual `gh pr create` invocation.
+- [ ] Title and body are in English even when the conversation is in another language, and the body keeps its `## Summary` / section structure instead of one prose paragraph.
+- [ ] The full body is visible in the chat stream before the prompt appears; the `AskUserQuestion` question is a single short line containing no body text.
+- [ ] `gh pr create` runs only after the prompt is answered -- printing the preview and creating the PR in one uninterrupted turn is a failure, even when the user's message asked for a PR.
 - [ ] No AI-attribution lines appear in the title or body.
 - [ ] `--base <branch>` overrides every other base-branch source.
 
 **Known gotchas:**
+- Splitting the preview out of the question field removes what used to force the prompt: when the body lived inside the question, the skill could not show it without asking. With the two separated, the printed preview looks like a confirmation on its own and the prompt gets skipped. Step 4b is the guard, and it is why the skip is called out there in its own paragraph.
+- The `AskUserQuestion` question field is rendered single-line and truncated on some surfaces, and ANSI escape codes print literally (`\x1b[2m` shows up as `@[2m`). Keep the question to one short plain-text line and put the preview in the chat stream.
 - `gh pr create` exits non-zero when a PR already exists; the skill must surface the error and suggest `gh pr list --head <branch>` rather than retrying.
 - Bitbucket and Azure DevOps are not supported by `gh`; the user must run a platform-specific tool manually for those.
