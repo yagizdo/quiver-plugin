@@ -91,7 +91,9 @@ Use the `AskUserQuestion` tool with the commit message embedded in the question 
 
 - **Question:** Build the question string using this template (replace placeholders):\
 
-`"\x1b[2mCommit Message:\x1b[0m\n\n{type}({scope}): {subject}\n\nProceed?"`
+`"Commit Message:\n\n{type}({scope}): {subject}\n\nProceed?"`
+
+  Plain text only -- no ANSI escape codes. `AskUserQuestion` renders the question in a TUI box that prints escape sequences literally instead of styling them.
 
   If the message has a body, append body lines after the subject separated by newlines.
 - **Header:** "Action"
@@ -166,5 +168,4 @@ If `git commit` fails, show the error verbatim and suggest the user fix the issu
 - [ ] `--push` path commits and pushes without prompting.
 
 **Known gotchas:**
-- The `\x1b[2m` ANSI dim escape inside the question string assumes the user's terminal renders ANSI; non-ANSI terminals will see literal escape codes but the message remains readable.
 - Pushing without an upstream requires `git push -u origin <branch>`; do not silently fall back to `git push` when no upstream is configured.
