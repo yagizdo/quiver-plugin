@@ -77,7 +77,7 @@ Analyze `git diff --cached` and the recent log. Generate a Conventional Commits 
 
 # Output
 
-**Important:** Do NOT output the commit message as separate text. Embed it directly inside the `AskUserQuestion` tool call so the user always sees the message alongside the options.
+**Important:** The user must see the full commit message before answering the prompt. Print it to the chat stream and keep the `AskUserQuestion` question itself to one short line -- see **Default (no flag)** below.
 
 Include a body or footers only for breaking changes or multi-type changes where the subject alone is genuinely ambiguous. Default to subject-only. Don't add `Co-authored-by` or attribution footers unless explicitly requested.
 
@@ -87,21 +87,27 @@ If `$ARGUMENTS` contains "push" (e.g., `/quiver:commit --push`), skip the `AskUs
 
 ## Default (no flag)
 
-Use the `AskUserQuestion` tool with the commit message embedded in the question field:
+Two steps, both mandatory: print the message, then ask. Do not paste the commit message into the `AskUserQuestion` question field -- that field is rendered as a single truncated line by some Claude Code surfaces, so a multi-line message is cut off or dropped entirely and the user is asked to approve something they cannot read.
 
-- **Question:** Build the question string using this template (replace placeholders):\
+**Step 1 -- print the message** as normal chat output, verbatim inside a fenced block, so the user sees exactly what `git commit` will receive:
 
-`"Commit Message:\n\n{type}({scope}): {subject}\n\nProceed?"`
+```
+{type}({scope}): {subject}
 
-  Plain text only -- no ANSI escape codes. `AskUserQuestion` renders the question in a TUI box that prints escape sequences literally instead of styling them.
+{body lines, if the message has a body}
+```
 
-  If the message has a body, append body lines after the subject separated by newlines.
+**Step 2 -- ask, and wait for the answer:**
+
+- **Question:** `"Commit this?"` -- one short line. No newlines, no message text, no ANSI escape codes. `AskUserQuestion` renders the question in a TUI box that prints escape sequences literally instead of styling them.
 - **Header:** "Action"
 - **Options:**
   1. **Commit** — "Commit with this message"
   2. **Commit & Push** — "Commit and push to remote"
   3. **Edit** — "Revise the message"
   4. **Cancel** — "Abort without committing"
+
+Printing the message is not approval. It is only the readable copy of what the prompt is about, and it exists because the prompt cannot display it. Never run `git commit` without an answer from this `AskUserQuestion`. The user asking for a commit in their message is not the answer either -- that is what put the skill on this step. `--push` is the only path that skips the prompt.
 
 ---
 
@@ -156,7 +162,7 @@ If `git commit` fails, show the error verbatim and suggest the user fix the issu
 **Expected behavior:**
 1. Skill runs the four git shell blocks; on a non-git directory it prints `> No git repository detected. /commit requires a git repo.` and stops.
 2. With nothing changed, skill tells the user there's nothing to commit. With unstaged-only changes, skill tells the user to stage first.
-3. With staged changes, skill drafts a Conventional Commits message (type/scope/subject) and presents it via `AskUserQuestion` with `Commit / Commit & Push / Edit / Cancel`.
+3. With staged changes, skill drafts a Conventional Commits message (type/scope/subject), prints it to chat in a fenced block, then asks via `AskUserQuestion` with a one-line question and `Commit / Commit & Push / Edit / Cancel`.
 4. With `--push` argument, skill skips the prompt and runs commit then push (`git push` if upstream exists, `git push -u origin <branch>` otherwise).
 5. On failure, skill shows the error verbatim and exits without retrying or adding `--no-verify`.
 
@@ -164,8 +170,11 @@ If `git commit` fails, show the error verbatim and suggest the user fix the issu
 - [ ] Slash menu shows `/commit`.
 - [ ] Generated commit message starts with a valid type (`feat`, `fix`, `docs`, etc.) and a subject ≤72 chars.
 - [ ] No `Co-authored-by` or AI-attribution footers appear in the commit.
-- [ ] The interactive prompt is an `AskUserQuestion` with the message embedded in the question, not plain text.
+- [ ] The full commit message is visible in the chat stream before the prompt appears; the `AskUserQuestion` question is a single short line containing no message text.
+- [ ] `git commit` runs only after the prompt is answered -- printing the message and committing in one uninterrupted turn is a failure, even when the user's message asked for a commit.
 - [ ] `--push` path commits and pushes without prompting.
 
 **Known gotchas:**
+- Splitting the message out of the question field removes what used to force the prompt: when the message lived inside the question, the skill could not show it without asking. With the two separated, the printed message looks like a confirmation on its own and the prompt gets skipped. The guard paragraph under the options is why the skip is called out there.
+- The `AskUserQuestion` question field is rendered single-line and truncated on some surfaces, and ANSI escape codes print literally (`\x1b[2m` shows up as `@[2m`). Keep the question to one short plain-text line and put the message in the chat stream.
 - Pushing without an upstream requires `git push -u origin <branch>`; do not silently fall back to `git push` when no upstream is configured.
